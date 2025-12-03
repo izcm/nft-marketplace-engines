@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.13;
+pragma solidity ^0.8.30;
 
 library PoolActs {
     enum Side {
@@ -16,7 +16,9 @@ library PoolActs {
         bytes constraints;
     }
 
-    struct Call {}
+    struct Call {
+        address actor;
+    }
 
     bytes32 internal constant INTENT_HASH = keccak256("todo");
 

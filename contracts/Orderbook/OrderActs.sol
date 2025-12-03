@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity ^0.8.30;
+
 library OrderActs {
     enum Side {
         Ask,
@@ -13,7 +16,9 @@ library OrderActs {
         bytes constraints;
     }
 
-    struct Fill {}
+    struct Fill {
+        address actor;
+    }
 
     bytes32 constant ORDER_HASH = keccak256("todo");
 
