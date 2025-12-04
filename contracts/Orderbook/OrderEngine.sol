@@ -9,12 +9,12 @@ contract OrderEngine {
     using OrderActs for OrderActs.Order;
     using SigOps for SigOps.Signature;
 
-    bytes32 public immutable DOMAIN_SEPERATOR;
+    bytes32 public immutable DOMAIN_SEPARATOR;
     mapping(address => mapping(uint256 => bool)) private _isUserOrderNonceValid;
 
     constructor() {
         // load to memory => compute hash
-        DOMAIN_SEPERATOR = keccak256(
+        DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 // EIP-712 domain type hash
                 0x8b73c3c69bb8fe3d512ecc4cf759cc79239f7b179b0ffacaa9a75d522b39400f,
@@ -53,6 +53,6 @@ contract OrderEngine {
 
         // Verify signature
         //(uint8 v, bytes32 r, bytes32 s) = SigOps.vrs(sig);
-        SigOps.verify(DOMAIN_SEPERATOR, order.hash(), order.actor, v, r, s);
+        SigOps.verify(DOMAIN_SEPARATOR, order.hash(), order.actor, v, r, s);
     }
 }
