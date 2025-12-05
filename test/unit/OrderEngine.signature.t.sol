@@ -17,7 +17,10 @@ contract OrderEngineSignatureTest is Test {
     uint256 internal userPrivateKey;
     uint256 internal signerPrivateKey;
 
-    address internal collection;
+    address internal user;
+    address internal signer;
+
+    address internal collection = makeAddr("collection");
 
     function setUp() public {
         engine = new OrderEngine();
@@ -25,32 +28,47 @@ contract OrderEngineSignatureTest is Test {
         userPrivateKey = 0xabc123;
         signerPrivateKey = 0x123abc;
 
-        collection = makeAddr("collection");
+        user = vm.addr(userPrivateKey);
+        signer = vm.addr(signerPrivateKey);
     }
 
     function test_Settle_ValidSignature_Succeeds() public {
-        address user = vm.addr(userPrivateKey);
-        address signer = vm.addr(signerPrivateKey);
-
-        OrderActs.Order memory order = makeOrder(signer); // order actor = signer
-        bytes32 digest = makeDigest(order);
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPrivateKey, digest);
-
-        // sig + fill struct to feed `settle()`
-        SigOps.Signature memory sig = SigOps.Signature({v: v, r: r, s: s});
-        address test = ecrecover(digest, v, r, s);
-
+        (OrderActs.Order memory order, SigOps.Signature memory sig) = makeOrderDigestAndSign(signer, signerPrivateKey);
         OrderActs.Fill memory fill = makeFill(user);
 
-        vm.startPrank(user);
+        vm.prank(user);
         engine.settle(fill, order, sig);
-        vm.stopPrank();
+    }
+
+    function test_Settle_CorruptedS_Reverts() public {
+        (OrderActs.Order memory order, SigOps.Signature memory sig) = makeOrderDigestAndSign(signer, signerPrivateKey);
+        OrderActs.Fill memory fill = makeFill(user);
+
+        // simulate corrupt s <= n/2 https://eips.ethereum.org/EIPS/eip-2
+        sig.s = bytes32(uint256(0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) + 1);
+
+        vm.prank(user);
+        vm.expectRevert(SigOps.InvalidSParameter.selector);
+        engine.settle(fill, order, sig);
     }
 
     // --------------
     // HELPERS
     // --------------
+    function makeOrderDigestAndSign(address actor, uint256 actorPrivateKey)
+        internal
+        view
+        returns (OrderActs.Order memory, SigOps.Signature memory)
+    {
+        OrderActs.Order memory order = makeOrder(actor);
+        bytes32 digest = makeDigest(order);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(actorPrivateKey, digest);
+        SigOps.Signature memory sig = SigOps.Signature({v: v, r: r, s: s});
+
+        return (order, sig);
+    }
+
     function makeOrder(address actor) internal view returns (OrderActs.Order memory) {
         return makeOrder(actor, 0);
     }
@@ -74,7 +92,7 @@ contract OrderEngineSignatureTest is Test {
     }
 
     // `settle()` requires fill.actor = msg.sender
-    function makeFill(address actor) internal returns (OrderActs.Fill memory) {
+    function makeFill(address actor) internal pure returns (OrderActs.Fill memory) {
         return OrderActs.Fill({actor: actor});
     }
 

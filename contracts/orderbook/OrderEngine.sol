@@ -52,7 +52,7 @@ contract OrderEngine {
     /**
      * @notice Verify order is valid
      */
-    function _verifyOrder(OrderActs.Order calldata order, uint8 v, bytes32 r, bytes32 s) internal {
+    function _validateOrder(OrderActs.Order calldata order, uint8 v, bytes32 r, bytes32 s) internal view {
         // Require:
         // 1. Order nonce is valid
         // 2. Signer != addr(0)
