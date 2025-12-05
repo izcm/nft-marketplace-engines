@@ -3,6 +3,10 @@ src = "contracts"
 out = "out"
 libs = ["lib"]
 
+remappings = [
+    "orderbook/=contracts/orderbook"
+]
+
 [lint]
 exclude_lints = ["unaliased-plain-import"]
 

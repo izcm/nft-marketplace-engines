@@ -5,6 +5,9 @@ pragma solidity ^0.8.30;
 import "./libs/OrderActs.sol";
 import {SignatureOps as SigOps} from "./libs/SignatureOps.sol";
 
+// TODO read OZ helpers
+// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/cryptography/ECDSA.sol
+
 contract OrderEngine {
     using OrderActs for OrderActs.Order;
     using SigOps for SigOps.Signature;
@@ -13,7 +16,7 @@ contract OrderEngine {
     mapping(address => mapping(uint256 => bool)) private _isUserOrderNonceValid;
 
     constructor() {
-        // load to memory => compute hash
+        // compute domain seperator once
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 // EIP-712 domain type hash
