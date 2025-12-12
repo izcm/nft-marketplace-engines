@@ -9,5 +9,7 @@ contract DeployOrderEngine is Script {
         vm.startBroadcast();
         deployed = new OrderEngine();
         vm.stopBroadcast();
+
+        console2.log("Engine created at address: ", address(deployed));
     }
 }
