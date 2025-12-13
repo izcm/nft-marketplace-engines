@@ -5,6 +5,7 @@ libs = ["lib"]
 
 remappings = [
     "orderbook/=contracts/orderbook",
+    "dev-script/=script/setup-dev",
     "@openzeppelin/=lib/openzeppelin-contracts/contracts"
 ]
 

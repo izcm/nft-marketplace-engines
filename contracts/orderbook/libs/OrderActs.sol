@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
 library OrderActs {
@@ -19,8 +19,9 @@ library OrderActs {
         uint64 start;
         uint64 end;
         uint256 nonce;
-        // bytes constraints; remember to keccak dynamic values in an inner keccak256 when hashing
     }
+
+    // bytes constraints; remember to keccak dynamic values in an inner keccak256 when hashing
 
     /// Taker's action to fulfill an `Order` whether that be:
     /// 1. Selling an NFT if order is `bid`
@@ -53,4 +54,3 @@ library OrderActs {
         );
     }
 }
-
