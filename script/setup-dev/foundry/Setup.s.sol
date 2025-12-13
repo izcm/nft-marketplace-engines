@@ -17,7 +17,14 @@ interface IERC721 {
     function transferFrom(address from, address to, uint256 tokenId) external;
 }
 
+interface IWETH {
+    function deposit() external payable;
+    function transfer(address to, uint256 amount) external returns (bool);
+}
+
 contract Setup is BaseDevScript, Config {
+    uint256 immutable DEV_BOOTSTRAP_ETH = 10000 ether;
+
     OrderEngine public orderEngine;
 
     function run() external {
@@ -30,10 +37,13 @@ contract Setup is BaseDevScript, Config {
         uint256 chainId = block.chainid;
         console.log("Deploying to chain: %s", chainId);
 
-        address azukiAddr = config.get("azuki_addr").toAddress();
+        // deploy marketplace
+
+        address azuki = config.get("azuki").toAddress();
+        address weth = config.get("weth").toAddress();
 
         // select tokens
-        (uint256[] memory ids) = selectTokens(azukiAddr, 10, 2);
+        (uint256[] memory ids) = selectTokens(azuki, 10, 2);
 
         // get number of tokens
         uint256 length = countUntilZero(ids);
@@ -46,7 +56,7 @@ contract Setup is BaseDevScript, Config {
 
         // read owner
         for (uint256 i = 0; i < length; i++) {
-            owners[i] = readOwnerOf(azukiAddr, ids[i]);
+            owners[i] = readOwnerOf(azuki, ids[i]);
             console.log("Owner of token %s: %s", ids[i], owners[i]);
         }
 
@@ -54,7 +64,7 @@ contract Setup is BaseDevScript, Config {
         for (uint256 i = 0; i < length; i++) {
             vm.prank(owners[i]);
             // transfer selected tokens to some devAddr
-            IERC721(azukiAddr).transferFrom(
+            IERC721(azuki).transferFrom(
                 owners[i], // ← ACTUAL OWNER
                 devAddr(1), // ← YOU
                 ids[i]
@@ -62,12 +72,17 @@ contract Setup is BaseDevScript, Config {
         }
 
         // --------------------------------
-        // PHASE 2: BROADCAST - FUND
+        // PHASE 2: BROADCAST - FUNDING
         // --------------------------------
+        uint256 WRAP_AMOUNT = 100 ether;
+        fundDevAccounts(DEV_BOOTSTRAP_ETH);
 
-        // - fund ETH to DEV wallets
         // - wrap ETH =>  WETH
-
+        vm.startBroadcast(2);
+        // check the note in `BaseDevScript`
+        // IWETH(weth).deposit{value: 1 ether}();
+        // now user has weth... next is approval next step
+        vm.stopBroadcast();
         // --------------------------------
         // PHASE 3: BROADCAST - APPROVALS
         // --------------------------------
