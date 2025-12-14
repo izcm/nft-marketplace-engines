@@ -13,6 +13,10 @@ import {DMrktGremlin as DNFT} from "nfts/DMrktGremlin.sol";
 // interfaces
 interface IERC721 {
     function setApprovalForAll(address operator, bool approved) external;
+    function isApprovedForAll(
+        address owner,
+        address operator
+    ) external returns (bool);
     function ownerOf(uint256 tokenId) external view returns (address);
     function transferFrom(address from, address to, uint256 tokenId) external;
     function balanceOf(address who) external view returns (uint256);
@@ -59,13 +63,13 @@ contract Setup is BaseDevScript, Config {
         uint256 funderPK = uint256(uint256(vm.envUint("PRIVATE_KEY")));
 
         // since the script uses the same private key its not necessary but I like to be explicit
-        // deploy dmrkt nft and marketplace
+        // deploy orderEngine nft and marketplace
         vm.startBroadcast(funderPK);
-        OrderEngine oe = new OrderEngine();
+        orderEngine = new OrderEngine();
         DNFT dNft = new DNFT();
         vm.stopBroadcast();
 
-        logDeployment("OrderEngine", address(oe));
+        logDeployment("OrderEngine", address(orderEngine));
         logDeployment("DNFT", address(dNft));
 
         // --------------------------------
@@ -153,11 +157,32 @@ contract Setup is BaseDevScript, Config {
 
         logSection("DNFT FINAL BALANCES");
 
-        for (uint256 i = 0; i < participantPKs.length; i++) {
+        for (uint256 i = 0; i < participantLen; i++) {
             address user = resolveAddr(participantPKs[i]);
             uint256 bal = IERC721(address(dNft)).balanceOf(user);
 
             logTokenBalance("DNFT", user, bal);
+        }
+
+        // --------------------------------
+        // PHASE 4: APPROVALS
+        // --------------------------------
+        logSection("APPROVE MARKETPLACE FOR NFTs");
+
+        address marketplace = address(orderEngine);
+        address nft = address(dNft);
+
+        for (uint256 i = 0; i < participantLen; i++) {
+            vm.startBroadcast(participantPKs[i]);
+            IERC721(nft).setApprovalForAll(marketplace, true);
+            vm.stopBroadcast();
+
+            address owner = resolveAddr(participantPKs[i]);
+            console.log(
+                "%s HAS APPROVED DMRKT FOR ALL: ",
+                owner,
+                IERC721(nft).isApprovedForAll(owner, marketplace)
+            );
         }
     }
 
@@ -198,12 +223,5 @@ contract Setup is BaseDevScript, Config {
         }
 
         return ids;
-    }
-
-    function readOwnerOf(
-        address tokenContract,
-        uint256 tokenId
-    ) internal view returns (address) {
-        return IERC721(tokenContract).ownerOf(tokenId);
     }
 }
