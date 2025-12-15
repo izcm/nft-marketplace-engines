@@ -1,17 +1,10 @@
-# ─────────────────────────────────────────────
-# LOCAL FORK
-# ─────────────────────────────────────────────
 [1337]
 endpoint_url = "${ANVIL_RPC_URL}"
 
 [1337.address]
-# funder
 funder = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"
 addr = "0x7C4B2f5D9E8A1c3E6F0A9bB4a2D1E5C8F9A6B7d2"
-
-# ERC20s
 weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-
-# (kept for reference, but don’t use in scripts yet)
-crypto_punks_addr = "0xb47e3cd837dDF8e4c57F05d70Ab865de6e193BBB"
-
+marketplace = "0xa40E009b306B3b4f27374f6e833291DaAeC88cc6"
+dnft_erc721 = "0x6FE69253967982531bDe0C06476e7fe427f3F56c"
+verifying_contract = "0xa40E009b306B3b4f27374f6e833291DaAeC88cc6"

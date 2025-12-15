@@ -6,12 +6,13 @@ libs = ["lib"]
 remappings = [
     "orderbook/=contracts/orderbook",
     "nfts/=contracts/nfts",
-    "dev-script/=script/setup-dev/foundry",
+    "dev-script/=script/setup-dev",
     "@openzeppelin/=lib/openzeppelin-contracts/contracts"
 ]
 
 fs_permissions = [
-    { access = "read", path = "./" },
+    { access = "read", path = "./data/" },
+    { access = "read-write", path = "deployments.toml" }
 ]
 
 [rpc_endpoints]

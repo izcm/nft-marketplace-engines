@@ -30,3 +30,38 @@
 */
 
 // then the ethers project should also sync to mongo
+
+/*
+  struct ListingSnapshot {
+      address nft;
+      uint256 tokenId;
+      address owner;
+      uint256 price;
+  }
+
+  {
+  "chainId": 1337,
+  "generatedAt": 1734212345,
+  "marketplace": "0xOrderEngineAddress",
+  "snapshots": [
+      {
+      "nft": "0xDNFTContractAddress",
+      "tokenId": "12",
+      "owner": "0xA1b2c3D4e5F6...",
+      "priceWei": "150000000000000000"
+      },
+      {
+      "nft": "0xDNFTContractAddress",
+      "tokenId": "47",
+      "owner": "0xB7c8D9E0a1F2...",
+      "priceWei": "500000000000000000"
+      },
+      {
+      "nft": "0xDNFTContractAddress",
+      "tokenId": "103",
+      "owner": "0xA1b2c3D4e5F6...",
+      "priceWei": "250000000000000000"
+      }
+      ]
+  }
+*/

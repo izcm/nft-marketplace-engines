@@ -47,9 +47,7 @@ interface IWETH is IERC20 {
 // Explicit vm.startBroadcast(funderPK) calls are used for clarity
 // and to guarantee correct sender behavior even if the script
 // is invoked from a different context.
-contract Setup is BaseDevScript, Config {
-    uint256 immutable DEV_BOOTSTRAP_ETH = 10000 ether;
-
+contract Bootstrap is BaseDevScript, Config {
     OrderEngine public orderEngine;
 
     function run() external {
@@ -82,6 +80,10 @@ contract Setup is BaseDevScript, Config {
         logDeployment("OrderEngine", address(orderEngine));
         logDeployment("DNFT", address(dNft));
 
+        // ---  write deployed addrs to .toml ---
+        config.set("verifying_contract", address(orderEngine)); // for our order builder
+        config.set("dnft_erc721", address(dNft));
+
         // --------------------------------
         // PHASE 2: FUND ETH
         // --------------------------------
@@ -93,23 +95,10 @@ contract Setup is BaseDevScript, Config {
         console.log("------------------------------------");
 
         uint256 distributableEth = (funder.balance * 4) / 5;
-        uint256 participantLen;
 
-        if (chainId == 1337) {
-            participantLen = DEV_KEYS.length;
-        } else {
-            revert("account bootstrap not configured for this chain");
-        }
-
-        uint256[] memory participantPKs = new uint256[](participantLen);
-
-        if (chainId == 1337) {
-            for (uint256 i = 0; i < participantLen; i++) {
-                participantPKs[i] = DEV_KEYS[i];
-            }
-        } else {
-            revert("account bootstrap not configured for this chain");
-        }
+        // --- PKs for broadcasting ---
+        uint256[] memory participantPKs = readKeys(chainId);
+        uint256 participantLen = participantPKs.length;
 
         // amount to fund each account
         uint256 bootstrapEth = distributableEth / participantLen;
@@ -156,7 +145,7 @@ contract Setup is BaseDevScript, Config {
         }
 
         // --------------------------------
-        // PHASE 3: MINT NFTs
+        // PHASE 4: MINT NFTs
         // --------------------------------
         logSection("MINT NFTs");
 
@@ -176,23 +165,11 @@ contract Setup is BaseDevScript, Config {
         }
 
         // --------------------------------
-        // PHASE 4: SELECT TOKENS FOR ORDERS
-        // --------------------------------
-        logSection("SELECT TOKENS");
-
-        uint256 scanLimit = supply / 2; // scan only N first tokenIds
-        uint8 density = 3;
-
-        uint256[] memory selectedTokens = selectTokens(
-            address(nftToken),
-            scanLimit,
-            density
-        );
-
-        // --------------------------------
         // PHASE 5: APPROVALS
         // --------------------------------
         logSection("APPROVE MARKETPLACE FOR NFTs");
+
+        // WILL OPTIMIZE AND MOVE APPROVAL LOGIC TO Approve.s.sol
 
         address marketplace = address(orderEngine);
 
@@ -210,29 +187,6 @@ contract Setup is BaseDevScript, Config {
         }
 
         logSection("APPROVE WETH ALLOWANCE FOR MARKETPLACE");
-
-        /*
-            DEV ORDERBOOK SETUP — INTENDED FLOW (CAN MIRROR PROD)
-
-            1) Mint NFTs
-            2) selectTokens() → choose tokenIds to list
-            3) Compute prices (pure + deterministic from tokenId)
-            4) Group by owner → sum prices per owner
-            = orderExposureByOwner / requiredWethAllowanceByOwner
-            5) Approve WETH = exact exposure per owner (NOT max)
-            6) Sign orders (off-chain)
-            7) Persist orders (JSON / Mongo)
-            8) Engine consumes orders
-
-            Notes:
-            - Allowance represents *economic exposure*, not convenience
-            - Deterministic pricing → reproducible forks & simulations
-            - Dev scripts intentionally mirror production flows
-
-            PROPER ALLOWANCE: 
-            exposure[owner] += priceOf(tokenId);
-            weth.approve(marketplace, exposure[owner]);
-        */
 
         // DEV-ONLY:
         // Infinite approval used ONLY for local fork / deterministic setup.
@@ -264,44 +218,15 @@ contract Setup is BaseDevScript, Config {
             bytes32 h = keccak256(abi.encode(address(nft), i));
             uint256 j = uint256(h) % pks.length;
 
-            address to = resolveAddr(pks[j]);
+            uint256 pk = pks[j];
+            address to = resolveAddr(pk);
+
+            // Broadcast as the recipient — respect for history
+            vm.startBroadcast(pk);
+
             nft.mint(to);
+
+            vm.stopBroadcast();
         }
-    }
-
-    function selectTokens(
-        address tokenContract,
-        uint256 scanLimit,
-        uint8 density
-    ) internal pure returns (uint256[] memory) {
-        uint256 count = 0;
-        uint targetCount = scanLimit / density;
-
-        uint256[] memory ids = new uint256[](targetCount);
-
-        for (uint256 i = 0; i < scanLimit && count < targetCount; i++) {
-            bytes32 h = keccak256(abi.encode(tokenContract, i));
-            if (uint256(h) % density == 0) {
-                ids[count++] = i;
-            }
-        }
-
-        assembly {
-            mstore(ids, count)
-        }
-
-        return ids;
-    }
-
-    function priceOf(
-        address nft,
-        uint256 tokenId
-    ) internal pure returns (uint256) {
-        bytes32 h = keccak256(abi.encode("DMRKT_PRICE_V1", nft, tokenId));
-
-        // map to range: 0.05 → 0.55 ETH
-        uint256 bucket = uint256(h) % 11; // 0..10
-
-        return (bucket + 1) * 0.05 ether;
     }
 }
