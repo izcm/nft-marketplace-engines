@@ -100,7 +100,7 @@ contract BuildOrders is BaseDevScript, Config {
         string memory path = string.concat(
             "./data/",
             vm.toString(chainId),
-            "/orders.json"
+            "/orders-raw.json"
         );
 
         _persistSignedOrders(
