@@ -1,6 +1,7 @@
 import fs from "node:fs/promises";
 
-const basePath = "../../../data/1337";
+// const basePath = "../../../data/1337";
+const basePath = "./data/1337";
 
 const inFile = `${basePath}/orders-raw.json`;
 const outFile = `${basePath}/orders-sanitized.json`;
