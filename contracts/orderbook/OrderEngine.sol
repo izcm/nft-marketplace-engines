@@ -155,7 +155,7 @@ contract OrderEngine is ReentrancyGuard {
         uint256 tokenId
     ) internal {
         if (IERC165(collection).supportsInterface(INTERFACE_ID_ERC721)) {
-            // erc165 supports interface erc721
+            // nft supports erc721
             IERC721(collection).safeTransferFrom(from, to, tokenId);
         } else {
             revert UnsupportedCollection();

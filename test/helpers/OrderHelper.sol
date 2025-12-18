@@ -6,44 +6,29 @@ import {Test} from "forge-std/Test.sol";
 // local
 import {OrderActs} from "orderbook/libs/OrderActs.sol";
 import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
+import {OrderBuilder} from "periphery/OrderBuilder.sol";
 
 abstract contract OrderHelper is Test {
     using OrderActs for OrderActs.Order;
 
     uint256 internal constant DEFAULT_PRICE = 1 ether;
 
-    // defaults (override in child tests if you want)
     address internal collection = makeAddr("collection");
     address internal defaultCurrency = makeAddr("currency");
 
-    /*//////////////////////////////////////////////////////////////
-                                SIGNING
-    //////////////////////////////////////////////////////////////*/
-
-    function makeOrderDigestAndSign(
-        address actor,
-        uint256 actorPk,
-        bytes32 domainSeparator
-    )
-        internal
-        view
-        returns (OrderActs.Order memory order, SigOps.Signature memory sig)
-    {
-        order = makeOrder(actor);
-        bytes32 digest = makeDigest(order, domainSeparator);
-
-        (uint8 v, bytes32 r, bytes32 s) = vm.sign(actorPk, digest);
-        sig = SigOps.Signature({v: v, r: r, s: s});
-    }
-
-    /*//////////////////////////////////////////////////////////////
-                                ORDERS
-    //////////////////////////////////////////////////////////////*/
+    // === MAKE ORDERS ===
 
     function makeOrder(
         address actor
     ) internal view returns (OrderActs.Order memory) {
         return makeOrder(actor, 0, defaultCurrency, DEFAULT_PRICE);
+    }
+
+    function makeOrder(
+        address actor,
+        address currency
+    ) internal view returns (OrderActs.Order memory) {
+        return makeOrder(actor, 0, currency, DEFAULT_PRICE);
     }
 
     function makeOrder(
@@ -82,9 +67,32 @@ abstract contract OrderHelper is Test {
             });
     }
 
-    /*//////////////////////////////////////////////////////////////
-                                DIGEST
-    //////////////////////////////////////////////////////////////*/
+    function _makeOrder(
+        OrderActs.Side side,
+        address actor,
+        bool isCollectionBid,
+        address collection_,
+        uint256 tokenId,
+        address currency,
+        uint256 price,
+        uint256 nonce
+    ) internal view returns (OrderActs.Order memory) {
+        return
+            OrderActs.Order({
+                side: side,
+                actor: actor,
+                isCollectionBid: isCollectionBid,
+                collection: collection_,
+                currency: currency,
+                tokenId: tokenId,
+                price: price,
+                start: 0,
+                end: uint64(block.timestamp + 1 days),
+                nonce: nonce
+            });
+    }
+
+    // === DIGEST / SIGNING ===
 
     function makeDigest(
         OrderActs.Order memory o,
@@ -94,9 +102,33 @@ abstract contract OrderHelper is Test {
             keccak256(abi.encodePacked("\x19\x01", domainSeparator, o.hash()));
     }
 
-    /*//////////////////////////////////////////////////////////////
-                                SIGNATURE
-    //////////////////////////////////////////////////////////////*/
+    function makeDigestAndSign(
+        OrderActs.Order memory order,
+        bytes32 domainSeparator,
+        uint256 signerPk
+    ) internal pure returns (bytes32 digest, SigOps.Signature memory sig) {
+        digest = makeDigest(order, domainSeparator);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
+        sig = SigOps.Signature(v, r, s);
+    }
+
+    function makeOrderDigestAndSign(
+        address signer,
+        uint256 signerPk,
+        bytes32 domainSeparator
+    )
+        internal
+        view
+        returns (OrderActs.Order memory order, SigOps.Signature memory sig)
+    {
+        order = makeOrder(signer);
+        bytes32 digest = makeDigest(order, domainSeparator);
+
+        (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
+        sig = SigOps.Signature({v: v, r: r, s: s});
+    }
+
     function dummySig() internal pure returns (SigOps.Signature memory) {
         return SigOps.Signature({v: 0, r: bytes32(0), s: bytes32(0)});
     }

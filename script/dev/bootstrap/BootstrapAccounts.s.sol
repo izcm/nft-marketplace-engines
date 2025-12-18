@@ -8,7 +8,7 @@ import {console} from "forge-std/console.sol";
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 
 // interfaces
-import {IWETH} from "shared/interfaces/IWETH.sol";
+import {IWETH} from "periphery/interfaces/IWETH.sol";
 
 contract BootstrapAccounts is BaseDevScript, Config {
     function run() external {

@@ -11,37 +11,63 @@ import {MockVerifyingContract} from "../mocks/MockVerifyingContract.sol";
 
 contract SignatureOpsTest is OrderHelper {
     MockVerifyingContract verifier;
+    bytes32 domainSeparator;
 
     uint256 userPrivateKey;
-    uint256 signerPrivateKey;
+    uint256 signerPk;
 
     address user;
     address signer;
 
     function setUp() public {
         verifier = new MockVerifyingContract(keccak256("TEST_DOMAIN"));
+        domainSeparator = verifier.DOMAIN_SEPARATOR();
 
         userPrivateKey = 0xabc123;
-        signerPrivateKey = 0x123abc;
+        signerPk = 0x123abc;
 
         user = vm.addr(userPrivateKey);
-        signer = vm.addr(signerPrivateKey);
+        signer = vm.addr(signerPk);
     }
 
     function test_Verify_ValidSignature_Succeeds() public {
-        (OrderActs.Order memory order, SigOps.Signature memory sig) =
-            makeOrderDigestAndSign(signer, signerPrivateKey, verifier.DOMAIN_SEPARATOR());
+        (
+            OrderActs.Order memory order,
+            SigOps.Signature memory sig
+        ) = makeOrderDigestAndSign(signer, signerPk, domainSeparator);
 
         vm.prank(user);
         verifier.verify(order, sig);
     }
 
+    /*//////////////////////////////////////////////////////////////
+                                REVERTS
+    //////////////////////////////////////////////////////////////*/
+    function test_Verify_MutatedOrder_Reverts() public {
+        (
+            OrderActs.Order memory order,
+            SigOps.Signature memory sig
+        ) = makeOrderDigestAndSign(signer, signerPk, domainSeparator);
+
+        // mutate ANY field (pick one, doesn't matter)
+        order.price += 1;
+
+        vm.expectRevert(SigOps.InvalidSignature.selector);
+        verifier.verify(order, sig);
+    }
+
     function test_Verify_CorruptedS_Reverts() public {
-        (OrderActs.Order memory order, SigOps.Signature memory sig) =
-            makeOrderDigestAndSign(signer, signerPrivateKey, verifier.DOMAIN_SEPARATOR());
+        (
+            OrderActs.Order memory order,
+            SigOps.Signature memory sig
+        ) = makeOrderDigestAndSign(signer, signerPk, domainSeparator);
 
         // simulate corrupt s <= n/2 https://eips.ethereum.org/EIPS/eip-2
-        sig.s = bytes32(uint256(0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0) + 1);
+        sig.s = bytes32(
+            uint256(
+                0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF5D576E7357A4501DDFE92F46681B20A0
+            ) + 1
+        );
 
         vm.prank(user);
         vm.expectRevert(SigOps.InvalidSParameter.selector);
@@ -51,8 +77,10 @@ contract SignatureOpsTest is OrderHelper {
     function test_Verify_CorruptedV_Reverts() public {}
 
     function test_Verify_WrongSigner_Reverts() public {
-        (OrderActs.Order memory order, SigOps.Signature memory sig) =
-            makeOrderDigestAndSign(signer, signerPrivateKey, verifier.DOMAIN_SEPARATOR());
+        (
+            OrderActs.Order memory order,
+            SigOps.Signature memory sig
+        ) = makeOrderDigestAndSign(signer, signerPk, domainSeparator);
 
         order.actor = makeAddr("imposter");
 

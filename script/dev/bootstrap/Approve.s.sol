@@ -9,7 +9,7 @@ import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 
 // interfaces
 import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
-import {IWETH} from "shared/interfaces/IWETH.sol";
+import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
 
 contract Approve is BaseDevScript, Config {
     function run() external {
@@ -62,7 +62,7 @@ contract Approve is BaseDevScript, Config {
         // DEV-ONLY:
         // Infinite approval used ONLY for local fork / deterministic setup.
         // Production flow uses exact per-owner exposure-based allowances.
-        IWETH wethToken = IWETH(weth);
+        IERC20 wethToken = IERC20(weth);
         uint256 allowance = type(uint256).max;
 
         for (uint256 i = 0; i < participantCount; i++) {

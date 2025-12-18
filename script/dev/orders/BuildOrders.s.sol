@@ -17,8 +17,8 @@ import {OrderEngine} from "orderbook/OrderEngine.sol";
 // local libs
 import {OrderActs} from "orderbook/libs/OrderActs.sol";
 import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
-import {OrderBuilder} from "orderbook/libs/OrderBuilder.sol";
-import {MarketSim} from "orderbook/libs/MarketSim.sol";
+import {OrderBuilder} from "periphery/OrderBuilder.sol";
+import {MarketSim} from "periphery/MarketSim.sol";
 
 interface DNFT {
     function MAX_SUPPLY() external view returns (uint256);

@@ -7,7 +7,7 @@ import {console} from "forge-std/console.sol";
 // local
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 import {OrderEngine} from "orderbook/OrderEngine.sol";
-import {DMrktGremlin as DNFT} from "shared/nfts/DMrktGremlin.ERC721.sol";
+import {DMrktGremlin as DNFT} from "nfts/DMrktGremlin.ERC721.sol";
 
 contract DeployCore is BaseDevScript, Config {
     OrderEngine public orderEngine;
