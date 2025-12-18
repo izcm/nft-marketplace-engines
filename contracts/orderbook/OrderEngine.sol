@@ -81,11 +81,16 @@ contract OrderEngine is ReentrancyGuard {
         // prevent replay by making nonce invalid
         _isUserOrderNonceInvalid[order.actor][order.nonce] = true;
 
+        _settlePayment(order.currency, order.price, fill.actor, order.actor);
+
         _transferNFT(order.collection, fill.actor, order.actor, tokenId);
     }
 
     // ===== INTERNAL FUNCTIONS =====
 
+    /**
+     * @param currency: per today always WETH.
+     */
     function _settlePayment(
         address currency,
         uint256 amount,
@@ -110,8 +115,6 @@ contract OrderEngine is ReentrancyGuard {
 
         // stage 2:  calculate royalty fee
         {
-            uint256 feeAmount = 100;
-
             // IERC20(WETH).safeTransferFrom
         }
 
