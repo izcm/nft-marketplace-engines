@@ -2,11 +2,11 @@
 pragma solidity ^0.8.30;
 
 library MarketSim {
-    function selectTokens(
-        address collection,
-        uint256 scanLimit,
-        uint8 density
-    ) internal pure returns (uint256[] memory) {
+    function selectTokens(address collection, uint256 scanLimit, uint8 density)
+        internal
+        pure
+        returns (uint256[] memory)
+    {
         uint256 count = 0;
         uint256 targetCount = scanLimit / density;
         uint256[] memory ids = new uint256[](targetCount);
@@ -25,13 +25,8 @@ library MarketSim {
         return ids;
     }
 
-    function priceOf(
-        address collection,
-        uint256 tokenId
-    ) internal pure returns (uint256) {
-        bytes32 h = keccak256(
-            abi.encode("DMRKT_PRICE_V1", collection, tokenId)
-        );
+    function priceOf(address collection, uint256 tokenId) internal pure returns (uint256) {
+        bytes32 h = keccak256(abi.encode("DMRKT_PRICE_V1", collection, tokenId));
 
         uint256 bucket = uint256(h) % 11;
         return (bucket + 1) * 0.05 ether;

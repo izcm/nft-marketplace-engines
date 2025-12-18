@@ -2,7 +2,6 @@
 pragma solidity ^0.8.30;
 
 // foundry
-import {Script} from "forge-std/Script.sol";
 import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
@@ -31,7 +30,7 @@ struct SignedOrder {
 }
 
 contract BuildOrders is BaseDevScript, Config {
-    mapping(address => uint256) internal ownerPK;
+    mapping(address => uint256) internal ownerPk;
     mapping(address => uint256) internal nonceOf;
 
     function run() external {
@@ -67,14 +66,14 @@ contract BuildOrders is BaseDevScript, Config {
         uint256 orderCount = orders.length;
 
         // --- PKs for signing ---
-        uint256[] memory participantPKs = readKeys(chainId);
-        uint256 participantCount = participantPKs.length;
+        uint256[] memory participantPks = readKeys(chainId);
+        uint256 participantCount = participantPks.length;
 
         for (uint256 i = 0; i < participantCount; i++) {
-            uint256 pk = participantPKs[i];
+            uint256 pk = participantPks[i];
 
             address addr = resolveAddr(pk);
-            ownerPK[addr] = pk;
+            ownerPk[addr] = pk;
         }
 
         bytes32 domainSeparator = OrderEngine(verifyingContract)
@@ -85,7 +84,7 @@ contract BuildOrders is BaseDevScript, Config {
         for (uint256 i = 0; i < orderCount; i++) {
             OrderActs.Order memory order = orders[i];
 
-            uint256 pk = ownerPK[order.actor];
+            uint256 pk = ownerPk[order.actor];
             require(pk != 0, "NO PK FOR ACTOR");
 
             (SigOps.Signature memory sig) = _makeOrderDigestAndSign(
@@ -94,8 +93,13 @@ contract BuildOrders is BaseDevScript, Config {
                 domainSeparator
             );
 
-            signed[i] = SignedOrder(order, sig);
+            signed[i] = SignedOrder({order: order, sig: sig});
         }
+
+        // --------------------------------
+        // PHASE 2: WRITE AS JSON
+        // --------------------------------
+        logSection("WRITING ORDERS AS JSON");
 
         string memory path = string.concat(
             "./data/",

@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
+// open zeppelin
 import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
 import {IERC165} from "@openzeppelin/interfaces/IERC165.sol";
+import {IERC20, SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/utils/ReentrancyGuard.sol";
 
 // local
@@ -18,12 +20,20 @@ error UnsupportedCollection();
 
 bytes4 constant INTERFACE_ID_ERC721 = 0x80ac58cd;
 
+// TODO: when implementing support for other currency than WETH:
+// /lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol
 contract OrderEngine is ReentrancyGuard {
+    // though only weth is supported SafeERC20 is used for future proofing
+    using SafeERC20 for IERC20;
+
     using OrderActs for OrderActs.Order;
     using SigOps for SigOps.Signature;
 
     bytes32 public immutable DOMAIN_SEPARATOR;
     address public immutable WETH;
+    uint256 public immutable PROTOCOL_FEE_BPS = 1; // immutable for simplicity
+
+    address public protocolFeeReceiver;
 
     mapping(address => mapping(uint256 => bool))
         private _isUserOrderNonceInvalid;
@@ -43,7 +53,9 @@ contract OrderEngine is ReentrancyGuard {
             )
         );
 
+        // TODO: pass these as constructor args
         WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+        protocolFeeReceiver = address(0);
     }
 
     // ===== EXTERNAL FUNCTIONS =====
@@ -74,10 +86,39 @@ contract OrderEngine is ReentrancyGuard {
 
     // ===== INTERNAL FUNCTIONS =====
 
-    function _settlePayment() internal {
-        // calculate protocol fee
-        // calculate royalties
-        // transfer final amount (stripped of fees) to seller
+    function _settlePayment(
+        address currency,
+        uint256 amount,
+        address from,
+        address to
+    ) internal {
+        uint256 sellerCompensation = amount;
+
+        // stage 1: calculate protocol fee
+        {
+            uint256 feeAmount = (amount * PROTOCOL_FEE_BPS) / 100;
+
+            // using SafeERC20 for future proofing
+            IERC20(currency).safeTransferFrom(
+                from,
+                protocolFeeReceiver,
+                feeAmount
+            );
+
+            sellerCompensation -= feeAmount;
+        }
+
+        // stage 2:  calculate royalty fee
+        {
+            uint256 feeAmount = 100;
+
+            // IERC20(WETH).safeTransferFrom
+        }
+
+        // stage 3: compensate seller
+        {
+            IERC20(currency).safeTransferFrom(from, to, sellerCompensation);
+        }
     }
 
     /**

@@ -1,13 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Script} from "forge-std/Script.sol";
 import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
 // local
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
-import {OrderEngine} from "orderbook/OrderEngine.sol";
 
 // interfaces
 import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
@@ -33,8 +31,8 @@ contract Approve is BaseDevScript, Config {
         logAddress("MARKETPLACE", marketplace);
 
         // --- PKs for broadcasting ---
-        uint256[] memory participantPKs = readKeys(chainId);
-        uint256 participantCount = participantPKs.length;
+        uint256[] memory participantPks = readKeys(chainId);
+        uint256 participantCount = participantPks.length;
 
         // --------------------------------
         // PHASE 1: MARKETPLACE TRANSFER
@@ -44,11 +42,11 @@ contract Approve is BaseDevScript, Config {
         IERC721 nftToken = IERC721(address(dNft));
 
         for (uint256 i = 0; i < participantCount; i++) {
-            vm.startBroadcast(participantPKs[i]);
+            vm.startBroadcast(participantPks[i]);
             nftToken.setApprovalForAll(marketplace, true);
             vm.stopBroadcast();
 
-            address owner = resolveAddr(participantPKs[i]);
+            address owner = resolveAddr(participantPks[i]);
             console.log(
                 "%s HAS APPROVED DMRKT FOR ALL: ",
                 owner,
@@ -68,11 +66,11 @@ contract Approve is BaseDevScript, Config {
         uint256 allowance = type(uint256).max;
 
         for (uint256 i = 0; i < participantCount; i++) {
-            vm.startBroadcast(participantPKs[i]);
+            vm.startBroadcast(participantPks[i]);
             wethToken.approve(marketplace, allowance);
             vm.stopBroadcast();
 
-            address owner = resolveAddr(participantPKs[i]);
+            address owner = resolveAddr(participantPks[i]);
             console.log(
                 "%s HAS APPROVED ALLOWANCE FOR MARKETPLACE: ",
                 owner,

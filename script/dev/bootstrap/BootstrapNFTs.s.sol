@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Script} from "forge-std/Script.sol";
 import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
@@ -32,8 +31,8 @@ contract BootstrapNFTs is BaseDevScript, Config {
         logAddress("DNFT    ", dNft);
 
         // --- PKs for broadcasting ---
-        uint256[] memory participantPKs = readKeys(chainId);
-        uint256 participantCount = participantPKs.length;
+        uint256[] memory participantPks = readKeys(chainId);
+        uint256 participantCount = participantPks.length;
 
         // --------------------------------
         // PHASE 1: MINT NFTs
@@ -44,12 +43,12 @@ contract BootstrapNFTs is BaseDevScript, Config {
         uint256 supply = nftToken.MAX_SUPPLY();
 
         // script mints all tokens => limit = MAX_SUPPLY()
-        mintTokens(participantPKs, nftToken, supply);
+        mintTokens(participantPks, nftToken, supply);
 
         logSection("DNFT FINAL BALANCES");
 
         for (uint256 i = 0; i < participantCount; i++) {
-            address user = resolveAddr(participantPKs[i]);
+            address user = resolveAddr(participantPks[i]);
             uint256 bal = nftToken.balanceOf(user);
 
             logTokenBalance("DNFT", user, bal);

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Script} from "forge-std/Script.sol";
 import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
@@ -11,11 +10,6 @@ import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 // interfaces
 import {IWETH} from "shared/interfaces/IWETH.sol";
 
-// NOTE:
-// This script is typically executed using the funder private key.
-// Explicit vm.startBroadcast(funderPK) calls are used for clarity
-// and to guarantee correct sender behavior even if the script
-// is invoked from a different context.
 contract BootstrapAccounts is BaseDevScript, Config {
     function run() external {
         // --------------------------------
@@ -34,7 +28,7 @@ contract BootstrapAccounts is BaseDevScript, Config {
         address weth = config.get("weth").toAddress();
 
         // read .env
-        uint256 funderPK = uint256(uint256(vm.envUint("PRIVATE_KEY")));
+        uint256 funderPk = uint256(uint256(vm.envUint("PRIVATE_KEY")));
 
         // --------------------------------
         // PHASE 1: FUND ETH
@@ -52,16 +46,16 @@ contract BootstrapAccounts is BaseDevScript, Config {
 
         // TODO: replace dev PKs with mnemonic-derived keys
         // https://getfoundry.sh/reference/cheatcodes/derive-key
-        uint256[] memory participantPKs = readKeys(chainId);
-        uint256 participantCount = participantPKs.length;
+        uint256[] memory participantPks = readKeys(chainId);
+        uint256 participantCount = participantPks.length;
 
         // amount to fund each account
         uint256 bootstrapEth = distributableEth / participantCount;
 
-        vm.startBroadcast(funderPK);
+        vm.startBroadcast(funderPk);
 
         for (uint256 i = 0; i < participantCount; i++) {
-            address a = resolveAddr(participantPKs[i]);
+            address a = resolveAddr(participantPks[i]);
 
             logBalance("PRE ", a);
 
@@ -87,10 +81,10 @@ contract BootstrapAccounts is BaseDevScript, Config {
         IWETH wethToken = IWETH(weth);
 
         for (uint256 i = 1; i < participantCount; i++) {
-            address a = resolveAddr(participantPKs[i]);
+            address a = resolveAddr(participantPks[i]);
             logTokenBalance("PRE  WETH", a, wethToken.balanceOf(a));
 
-            vm.startBroadcast(participantPKs[i]);
+            vm.startBroadcast(participantPks[i]);
             wethToken.deposit{value: wethWrapAmount}();
             vm.stopBroadcast();
 

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Script} from "forge-std/Script.sol";
 import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
@@ -26,15 +25,16 @@ contract DeployCore is BaseDevScript, Config {
         console.log("ChainId: %s", chainId);
 
         // --------------------------------
-        // PHASE 1: SETUP CONTRACTS
+        // PHASE 1: DEPLOY MARKETPLCE & NFTS
         // --------------------------------
-        uint256 funderPK = uint256(uint256(vm.envUint("PRIVATE_KEY")));
+        uint256 funderPk = uint256(uint256(vm.envUint("PRIVATE_KEY")));
 
         // since the script uses the same private key its not necessary but I like to be explicit
-        // deploy orderEngine nft and marketplace
-        vm.startBroadcast(funderPK);
+        vm.startBroadcast(funderPk);
+
         orderEngine = new OrderEngine();
         DNFT dNft = new DNFT();
+
         vm.stopBroadcast();
 
         logDeployment("OrderEngine", address(orderEngine));
