@@ -6,7 +6,7 @@ import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
 // local
-import {BaseDevScript} from "dev-script/BaseDevScript.s.sol";
+import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 import {OrderEngine} from "orderbook/OrderEngine.sol";
 import {DMrktGremlin as DNFT} from "shared/nfts/DMrktGremlin.ERC721.sol";
 

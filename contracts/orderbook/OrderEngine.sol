@@ -75,7 +75,9 @@ contract OrderEngine is ReentrancyGuard {
     // ===== INTERNAL FUNCTIONS =====
 
     function _settlePayment() internal {
-        // todo:
+        // calculate protocol fee
+        // calculate royalties
+        // transfer final amount (stripped of fees) to seller
     }
 
     /**

@@ -10,7 +10,7 @@ import {console} from "forge-std/console.sol";
 import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
 
 // local scripts
-import {BaseDevScript} from "dev-script/BaseDevScript.s.sol";
+import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 
 // local contracts
 import {OrderEngine} from "orderbook/OrderEngine.sol";
