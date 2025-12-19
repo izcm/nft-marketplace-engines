@@ -22,13 +22,16 @@ contract OrderEngine is ReentrancyGuard {
     using SigOps for SigOps.Signature;
 
     // === ERRORS ===
+
+    // invalid order fields
     error UnauthorizedFillActor();
     error InvalidNonce();
     error ZeroActor();
+    error InvalidOrderSide();
+
+    // not supported behaviour
     error CurrencyNotWhitelisted();
     error UnsupportedCollection();
-    error InvalidOrderSide();
-    error OwnershipTransferFailed();
 
     // === IMMUTABLES ===
     bytes32 public immutable DOMAIN_SEPARATOR;
@@ -184,14 +187,6 @@ contract OrderEngine is ReentrancyGuard {
             revert UnsupportedCollection();
         }
 
-        IERC721 erc721 = IERC721(collection);
-
-        // attempt transfer
-        erc721.safeTransferFrom(from, to, tokenId);
-
-        // verify post-transfer ownerhip change
-        if (erc721.ownerOf(tokenId) != to) {
-            revert OwnershipTransferFailed();
-        }
+        IERC721(collection).safeTransferFrom(from, to, tokenId);
     }
 }

@@ -22,7 +22,6 @@ import {MockERC721} from "mocks/MockERC721.sol";
 
     // unsupported collection (not ERC721)
     // reverts if isBid & !isCollectionBid and order.tokenid != fill.tokenId
-    // reverts if erc721 returns ownerOf != new owner after nft transfer
 
     // === SIGNATURE (INTEGRATION ONLY) ===
 
@@ -170,7 +169,6 @@ contract OrderEngineSettleRevertsTest is
 
         order.side = OrderActs.Side._COUNT; // invalid
 
-        // needs a valide signature since revert happens after sig verification
         (, SigOps.Signature memory sig) = makeDigestAndSign(order, signerPk);
 
         OrderActs.Fill memory fill = makeFill(actors.fill);
