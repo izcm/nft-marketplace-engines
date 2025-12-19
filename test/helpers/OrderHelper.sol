@@ -17,6 +17,11 @@ abstract contract OrderHelper is Test {
     uint256 private constant DEFAULT_PRICE = 1 ether;
     uint256 private constant DEFAULT_TOKEN_ID = 1;
 
+    bytes32 private domainSeparator;
+
+    function _initOrderHelper(bytes32 _domainSeparator) internal {
+        domainSeparator = _domainSeparator;
+    }
     // === MAKE ORDERS ===
 
     function makeAsk(
@@ -81,19 +86,17 @@ abstract contract OrderHelper is Test {
     // === DIGEST / SIGNING ===
 
     function makeDigest(
-        OrderActs.Order memory o,
-        bytes32 domainSeparator
-    ) internal pure returns (bytes32) {
+        OrderActs.Order memory o
+    ) internal view returns (bytes32) {
         return
             keccak256(abi.encodePacked("\x19\x01", domainSeparator, o.hash()));
     }
 
     function makeDigestAndSign(
         OrderActs.Order memory order,
-        bytes32 domainSeparator,
         uint256 signerPk
-    ) internal pure returns (bytes32 digest, SigOps.Signature memory sig) {
-        digest = makeDigest(order, domainSeparator);
+    ) internal view returns (bytes32 digest, SigOps.Signature memory sig) {
+        digest = makeDigest(order);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
         sig = SigOps.Signature(v, r, s);
@@ -101,15 +104,14 @@ abstract contract OrderHelper is Test {
 
     function makeOrderDigestAndSign(
         address signer,
-        uint256 signerPk,
-        bytes32 domainSeparator
+        uint256 signerPk
     )
         internal
         view
         returns (OrderActs.Order memory order, SigOps.Signature memory sig)
     {
         order = makeAsk(signer);
-        bytes32 digest = makeDigest(order, domainSeparator);
+        bytes32 digest = makeDigest(order);
 
         (uint8 v, bytes32 r, bytes32 s) = vm.sign(signerPk, digest);
         sig = SigOps.Signature({v: v, r: r, s: s});

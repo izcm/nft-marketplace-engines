@@ -4,7 +4,8 @@ pragma solidity ^0.8.30;
 library OrderActs {
     enum Side {
         Ask, // 0
-        Bid // 1
+        Bid, // 1
+        _COUNT
     }
 
     /// Maker's Intent

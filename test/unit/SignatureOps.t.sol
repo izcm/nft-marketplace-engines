@@ -11,7 +11,6 @@ import {MockVerifyingContract} from "../mocks/MockVerifyingContract.sol";
 
 contract SignatureOpsTest is OrderHelper {
     MockVerifyingContract verifier;
-    bytes32 domainSeparator;
 
     uint256 userPrivateKey;
     uint256 signerPk;
@@ -21,13 +20,15 @@ contract SignatureOpsTest is OrderHelper {
 
     function setUp() public {
         verifier = new MockVerifyingContract(keccak256("TEST_DOMAIN"));
-        domainSeparator = verifier.DOMAIN_SEPARATOR();
+        bytes32 domainSeparator = verifier.DOMAIN_SEPARATOR();
 
         userPrivateKey = 0xabc123;
         signerPk = 0x123abc;
 
         user = vm.addr(userPrivateKey);
         signer = vm.addr(signerPk);
+
+        _initOrderHelper(domainSeparator);
     }
 
     /*//////////////////////////////////////////////////////////////
@@ -38,7 +39,7 @@ contract SignatureOpsTest is OrderHelper {
         (
             OrderActs.Order memory order,
             SigOps.Signature memory sig
-        ) = makeOrderDigestAndSign(signer, signerPk, domainSeparator);
+        ) = makeOrderDigestAndSign(signer, signerPk);
 
         vm.prank(user);
         verifier.verify(order, sig);
@@ -52,7 +53,7 @@ contract SignatureOpsTest is OrderHelper {
         (
             OrderActs.Order memory order,
             SigOps.Signature memory sig
-        ) = makeOrderDigestAndSign(signer, signerPk, domainSeparator);
+        ) = makeOrderDigestAndSign(signer, signerPk);
 
         // mutate ANY field (pick one, doesn't matter)
         order.price += 1;
@@ -65,7 +66,7 @@ contract SignatureOpsTest is OrderHelper {
         (
             OrderActs.Order memory order,
             SigOps.Signature memory sig
-        ) = makeOrderDigestAndSign(signer, signerPk, domainSeparator);
+        ) = makeOrderDigestAndSign(signer, signerPk);
 
         // simulate corrupt s <= n/2 https://eips.ethereum.org/EIPS/eip-2
         sig.s = bytes32(
@@ -85,7 +86,7 @@ contract SignatureOpsTest is OrderHelper {
         (
             OrderActs.Order memory order,
             SigOps.Signature memory sig
-        ) = makeOrderDigestAndSign(signer, signerPk, domainSeparator);
+        ) = makeOrderDigestAndSign(signer, signerPk);
 
         order.actor = makeAddr("imposter");
 

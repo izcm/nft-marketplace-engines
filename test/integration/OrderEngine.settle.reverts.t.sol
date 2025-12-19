@@ -20,11 +20,9 @@ import {MockERC721} from "mocks/MockERC721.sol";
 /*
     // === REVERTS ===
 
-    // currency != WETH
     // unsupported collection (not ERC721)
-    // test reverts on invalid `Side`
     // reverts if isBid & !isCollectionBid and order.tokenid != fill.tokenId
-    // reverts erc721 token ownership does not change on transfer
+    // reverts if erc721 returns ownerOf != new owner after nft transfer
 
     // === SIGNATURE (INTEGRATION ONLY) ===
 
@@ -47,8 +45,6 @@ contract OrderEngineSettleRevertsTest is
     uint256 private constant DEFAULT_ACTOR_COUNT = 10; // adjust as you please
 
     OrderEngine orderEngine;
-    bytes32 domainSeparator;
-
     address erc721;
 
     function setUp() public {
@@ -59,56 +55,32 @@ contract OrderEngineSettleRevertsTest is
         erc721 = address(erc721Token);
 
         orderEngine = new OrderEngine(weth, address(this)); // fee receiver = this
-        domainSeparator = orderEngine.DOMAIN_SEPARATOR();
+        bytes32 domainSeparator = orderEngine.DOMAIN_SEPARATOR();
 
         // future proofing in case auth decentralizes from orderEngine
         address erc721Transferer = address(orderEngine);
         address erc20Spender = address(orderEngine);
 
         _initSettlementHelper(weth, erc721Transferer, erc20Spender);
+        _initOrderHelper(domainSeparator);
+
         _initActors(DEFAULT_ACTOR_COUNT);
     }
+
+    /*//////////////////////////////////////////////////////////////
+                    REVERTS BEFORE SIG VERIFICATION
+    //////////////////////////////////////////////////////////////*/
 
     function test_Settle_InvalidSenderReverts() public {
         Actors memory actors = someActors("invalid_sender");
         address txSender = vm.addr(actorCount() + 1); // private keys is [1, 2, 3... n]
 
-        OrderActs.Order memory order = makeAsk(actors.order); // should fail before currency revert
+        OrderActs.Order memory order = makeAsk(actors.order);
         OrderActs.Fill memory fill = makeFill(actors.fill);
         SigOps.Signature memory sig = dummySig();
 
         vm.prank(txSender);
         vm.expectRevert(OrderEngine.UnauthorizedFillActor.selector);
-        orderEngine.settle(fill, order, sig);
-    }
-
-    function test_Settle_ReusedNonceReverts() public {
-        Actors memory actors = someActors("reuse_nonce");
-        uint256 signerPk = pkOf(actors.order);
-
-        OrderActs.Order memory order = makeAsk(
-            actors.order,
-            erc721,
-            wethAddr()
-        );
-
-        (, SigOps.Signature memory sig) = makeDigestAndSign(
-            order,
-            domainSeparator,
-            signerPk
-        );
-
-        OrderActs.Fill memory fill = makeFill(actors.fill);
-
-        legitimizeSettlement(fill, order);
-
-        // valid nonce
-        vm.prank(actors.fill);
-        orderEngine.settle(fill, order, sig);
-
-        // replay nonce - should revert
-        vm.prank(actors.fill);
-        vm.expectRevert(OrderEngine.InvalidNonce.selector);
         orderEngine.settle(fill, order, sig);
     }
 
@@ -124,7 +96,7 @@ contract OrderEngineSettleRevertsTest is
             wethAddr()
         );
 
-        SigOps.Signature memory sig = dummySig(); // should revert before sig verification
+        SigOps.Signature memory sig = dummySig();
 
         OrderActs.Fill memory fill = makeFill(actors.fill);
 
@@ -147,12 +119,64 @@ contract OrderEngineSettleRevertsTest is
             nonWhitelistedCurrency
         );
 
-        SigOps.Signature memory sig = dummySig(); // should revert before sig verification
+        SigOps.Signature memory sig = dummySig();
 
         OrderActs.Fill memory fill = makeFill(actors.fill);
 
         vm.prank(actors.fill);
         vm.expectRevert(OrderEngine.CurrencyNotWhitelisted.selector);
+        orderEngine.settle(fill, order, sig);
+    }
+
+    /*//////////////////////////////////////////////////////////////
+                    REVERTS AFTER SIG VERIFICATION
+    //////////////////////////////////////////////////////////////*/
+
+    function test_Settle_ReusedNonceReverts() public {
+        Actors memory actors = someActors("reuse_nonce");
+        uint256 signerPk = pkOf(actors.order);
+
+        OrderActs.Order memory order = makeAsk(
+            actors.order,
+            erc721,
+            wethAddr()
+        );
+
+        (, SigOps.Signature memory sig) = makeDigestAndSign(order, signerPk);
+
+        OrderActs.Fill memory fill = makeFill(actors.fill);
+
+        legitimizeSettlement(fill, order);
+
+        // valid nonce
+        vm.prank(actors.fill);
+        orderEngine.settle(fill, order, sig);
+
+        // replay nonce - should revert
+        vm.prank(actors.fill);
+        vm.expectRevert(OrderEngine.InvalidNonce.selector);
+        orderEngine.settle(fill, order, sig);
+    }
+
+    function test_Settle_InvalidOrderSideReverts() public {
+        Actors memory actors = someActors("invalid_side");
+        uint256 signerPk = pkOf(actors.order);
+
+        OrderActs.Order memory order = makeAsk(
+            actors.order,
+            erc721,
+            wethAddr()
+        );
+
+        order.side = OrderActs.Side._COUNT; // invalid
+
+        // needs a valide signature since revert happens after sig verification
+        (, SigOps.Signature memory sig) = makeDigestAndSign(order, signerPk);
+
+        OrderActs.Fill memory fill = makeFill(actors.fill);
+
+        vm.prank(actors.fill);
+        vm.expectRevert(OrderEngine.InvalidOrderSide.selector);
         orderEngine.settle(fill, order, sig);
     }
 }
