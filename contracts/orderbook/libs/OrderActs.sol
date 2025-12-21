@@ -9,6 +9,7 @@ library OrderActs {
     }
 
     /// Maker's Intent
+    // TODO: add chain id to prevent cross-chain replay attacks
     struct Order {
         Side side;
         bool isCollectionBid; // if side = bid and order is for any item in collection
@@ -42,7 +43,10 @@ library OrderActs {
 
     // https://eips.ethereum.org/EIPS/eip-712#definition-of-hashstruct:
     // hashStruct(s : 𝕊) = keccak256(typeHash ‖ encodeData(s)) where typeHash = keccak256(encodeType(typeOf(s)))
-    bytes32 constant ORDER_TYPE_HASH = keccak256("dmrkt.order.v.1.0"); // temporary until `Order` fields are decided
+    bytes32 constant ORDER_TYPE_HASH =
+        keccak256(
+            "Order(uint8 side,bool isCollectionBid,address collection,uint256 tokenId,address currency,uint256 price,address actor,uint64 start,uint64 end,uint256 nonce)"
+        );
 
     // TODO: implement this in assembly and test gas savings
     function hash(Order memory o) internal pure returns (bytes32) {
