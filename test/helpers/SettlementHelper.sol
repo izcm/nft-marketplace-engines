@@ -12,7 +12,7 @@ import {IERC20, SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {IMintable721, IERC721} from "periphery/interfaces/IMintable.sol";
 import {IWETH} from "periphery/interfaces/IWETH.sol";
 
-import {SettlementRoles} from "periphery/SettlementRoles.sol";
+import {SettlementRoles} from "orderbook/libs/SettlementRoles.sol";
 
 abstract contract SettlementHelper is Test {
     using SafeERC20 for IERC20; // mirrors actual engine

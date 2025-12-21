@@ -13,7 +13,7 @@ import {OrderActs} from "orderbook/libs/OrderActs.sol";
 import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
 
 // periphery
-import {SettlementRoles} from "periphery/SettlementRoles.sol";
+import {SettlementRoles} from "orderbook/libs/SettlementRoles.sol";
 
 struct Balances {
     uint256 spender;

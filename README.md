@@ -34,16 +34,21 @@ This repository contains **both on-chain contracts and off-chain tooling**.
 
 ### 🔗 On-chain (production-critical, fully tested)
 
-These contracts are deployed on-chain and are covered by exhaustive tests:
+These contracts / libraries are deployed on-chain and are covered by exhaustive tests:
 
 - `contracts/orderbook/`
   - `OrderEngine.sol`
   - `libs/OrderActs.sol`
   - `libs/SignatureOps.sol`
+  - `libs/SettlementRoles.sol`
 
-These contracts reach ~100% line / branch coverage and are the **security-critical surface**.
+They all reach ~100% line / branch coverage and are the **security-critical surface**.
 
-Contracts in `contracts/nfts` are only meant for lab / dev environment and not part of the testing scope.
+Contracts in `periphery/nfts` are only meant for lab / dev environment and not part of the testing scope.
+
+Test helpers are tested proportionally to the risk they introduce.
+
+Eg: `OrderHelper` not returning `Orders` of expected format could silently corrupt tests and invalidate tests results, so unit tests are implemented to detect this.
 
 ---
 

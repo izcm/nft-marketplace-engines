@@ -8,7 +8,8 @@ import {IERC20, SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/utils/ReentrancyGuard.sol";
 
 // local
-import "./libs/OrderActs.sol";
+import {OrderActs} from "./libs/OrderActs.sol";
+import {SettlementRoles} from "./libs/SettlementRoles.sol";
 import {SignatureOps as SigOps} from "./libs/SignatureOps.sol";
 
 bytes4 constant INTERFACE_ID_ERC721 = 0x80ac58cd;
@@ -25,7 +26,6 @@ contract OrderEngine is ReentrancyGuard {
     error ZeroActor();
     error InvalidNonce();
     error InvalidTimestamp();
-    error InvalidOrderSide();
 
     // not supported behaviour
     error CurrencyNotWhitelisted();
@@ -96,22 +96,8 @@ contract OrderEngine is ReentrancyGuard {
         _isUserOrderNonceInvalid[order.actor][order.nonce] = true;
 
         // decide roles and asset
-        address nftHolder;
-        address spender;
-        uint256 tokenId;
-
-        if (order.isAsk()) {
-            nftHolder = order.actor;
-            spender = fill.actor;
-            tokenId = order.tokenId;
-        } else if (order.isBid()) {
-            nftHolder = fill.actor;
-            spender = order.actor;
-
-            tokenId = order.isCollectionBid ? fill.tokenId : order.tokenId;
-        } else {
-            revert InvalidOrderSide();
-        }
+        (address nftHolder, address spender, uint256 tokenId) = SettlementRoles
+            .resolve(fill, order);
 
         _settlePayment(order.currency, spender, nftHolder, order.price);
 

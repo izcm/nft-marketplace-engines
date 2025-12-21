@@ -127,27 +127,6 @@ contract OrderEngineSettleRevertsTest is OrderEngineSettleBase {
                     VALID SIGNATURE REQUIRED
     //////////////////////////////////////////////////////////////*/
 
-    function test_Settle_InvalidOrderSide_Reverts() public {
-        (
-            Actors memory actors,
-            OrderActs.Order memory order,
-            OrderActs.Fill memory fill,
-            SigOps.Signature memory sig,
-            uint256 signerPk
-        ) = _setupSignedRevertTest("invalid_side");
-
-        order.side = OrderActs.Side._COUNT; // invalid
-        (, sig) = signOrder(order, signerPk);
-
-        _expectSettleRevert(
-            fill,
-            order,
-            sig,
-            actors.fill,
-            OrderEngine.InvalidOrderSide.selector
-        );
-    }
-
     function test_Settle_SignatureMismatch_Reverts() public {
         (
             Actors memory actors,
