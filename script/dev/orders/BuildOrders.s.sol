@@ -29,6 +29,30 @@ struct SignedOrder {
     SigOps.Signature sig;
 }
 
+/*
+    For multiple NFT collections:
+
+    Run one script call per collection:
+    forge script BuildOrders --sig "buildDNFT()"
+    forge script BuildOrders --sig "buildGremlin()"
+    forge script BuildOrders --sig "buildWorm()"
+
+    Each collection = independent market snapshot.
+    Do NOT loop collections inside run().
+
+    function buildGremlin() external {
+        _loadConfig("deployments.toml", true);
+        address collection = config.get("dmrktgremlin").toAddress();
+        buildOrders(collection);
+    }
+
+    function buildWorm() external {
+        _loadConfig("deployments.toml", true);
+        address collection = config.get("dmrktworm").toAddress();
+        buildOrders(collection);
+    }
+*/
+
 contract BuildOrders is BaseDevScript, Config {
     mapping(address => uint256) internal ownerPk;
     mapping(address => uint256) internal nonceOf;

@@ -6,18 +6,21 @@ source $ENV_FILE
 # Kill previous anvil if running
 pkill anvil 2>/dev/null
 
-# Rewind 3 months back 
-GENESIS_TS=$(date -d "3 months ago" +%s)
-NOW_TS=$(date +%s)
+# TODO: have a javscript fetch the actual blocknumber 30 days back dynamically
+# + write the blocknumber timestamp to .env or deployments.toml
 
-echo "🕰 Genesis timestamp : $GENESIS_TS"
-echo "⏰ Now timestamp     : $NOW_TS"
+# use hardcoced value temporarily:
+TARGET_BLOCK= # 0x15f9000
+#HISTORY_START_TS=<derived once>
+#NOW_TS=$(date +%s)
 
 # Start a fresh fork
+# https://getfoundry.sh/anvil/reference/anvil/
 anvil --fork-url https://eth-mainnet.g.alchemy.com/v2/$ALCHEMY_KEY \
   --port 8545 \
   --chain-id 1337 \
   --host 0.0.0.0 \
+  --fork-block-number 23597600 \
   --silent &
 
 # Wait for Anvil to start

@@ -46,6 +46,11 @@ contract BootstrapAccounts is BaseDevScript, Config {
 
         // TODO: replace dev PKs with mnemonic-derived keys
         // https://getfoundry.sh/reference/cheatcodes/derive-key
+        // here it could also be nice to instead of reading from json instead:
+        // 1. set --mnemonic flag in start.sh
+        // 2. write output of `anvil` as json (probably contains the dev account pks(?))
+        // 3. read these instead of keys.json
+        // would be nice for overall realistic dev env
         uint256[] memory participantPks = readKeys(chainId);
         uint256 participantCount = participantPks.length;
 

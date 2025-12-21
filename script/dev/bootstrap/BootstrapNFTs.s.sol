@@ -10,6 +10,25 @@ import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 // interfaces
 import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
 
+/*
+    for multiple NFT collections:
+
+    forge script BootstrapNFTs --sig "dmrktgremlin()"
+    forge script BootstrapNFTs --sig "dmrktworm()"
+
+    function dmrktgremlin() external {
+        _loadConfig("deployments.toml");
+        address collection = config.get("dmrktgremlin").toAddress();
+        bootstrapNfts(collection);
+    }
+
+    function dmrktworm() external {
+        _loadConfig("deployments.toml");
+        address collection = config.get("dmrktworm").toAddress();
+        bootstrapNfts(collection);
+    }
+*/
+
 interface IMintable721 is IERC721 {
     function mint(address to) external;
     function MAX_SUPPLY() external view returns (uint256);

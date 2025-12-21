@@ -13,6 +13,7 @@ PATH_ORDERS = $(PATH_DEV)/orders
 PATH_EXPORT = $(PATH_DEV)/export
 
 WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
+RPC_URL = $(ANVIL_RPC_URL)
 
 # ───────────────────────────────────────────────
 #   DEV — PRIMARY ENTRYPOINTS
@@ -26,6 +27,10 @@ dev-reset: kill-anvil dev-start
 # ───────────────────────────────────────────────
 #   DEV ENV SETUP - ON CHAIN
 # ───────────────────────────────────────────────
+
+# ❗ TODO: MAKE THIS WHOLE PROCESS DOCKERIZED 
+# https://getfoundry.sh/guides/foundry-in-docker/
+
 dev-fork:
 	@echo "🧬 Starting anvil fork..."
 	@cd $(PATH_DEV) && bash start.sh
@@ -33,7 +38,7 @@ dev-fork:
 dev-build-orders:
 	@echo "🔨 Building orders..."
 	forge script $(PATH_ORDERS)/BuildOrders.s.sol \
-		--rpc-url http://127.0.0.1:8545 \
+		--rpc-url $(RPC_URL) \
 		--broadcast \
 		--sender $(SENDER) \
 		--private-key $(PRIVATE_KEY)
@@ -41,7 +46,7 @@ dev-build-orders:
 dev-bootstrap-accounts:
 	@echo "💻 Bootstrapping dev accounts..."
 	forge script $(PATH_BOOTSTRAP)/BootstrapAccounts.s.sol \
-		--rpc-url http://127.0.0.1:8545 \
+		--rpc-url $(RPC_URL) \
 		--broadcast \
 		--sender $(SENDER) \
 		--private-key $(PRIVATE_KEY)
@@ -49,7 +54,7 @@ dev-bootstrap-accounts:
 dev-deploy-core:
 	@echo "🧾 Deploying core contracts..."
 	forge script $(PATH_DEV)/DeployCore.s.sol \
-		--rpc-url http://127.0.0.1:8545 \
+		--rpc-url $(RPC_URL) \
 		--broadcast \
 		--sender $(SENDER) \
 		--private-key $(PRIVATE_KEY)
@@ -57,7 +62,7 @@ dev-deploy-core:
 dev-bootstrap-nfts:
 	@echo "🖼️ Bootstrapping NFTs..."
 	forge script $(PATH_BOOTSTRAP)/BootstrapNFTs.s.sol \
-		--rpc-url http://127.0.0.1:8545 \
+		--rpc-url $(RPC_URL) \
 		--broadcast \
 		--sender $(SENDER) \
 		--private-key $(PRIVATE_KEY)
@@ -65,7 +70,7 @@ dev-bootstrap-nfts:
 dev-approve:
 	@echo "✔ Executing approvals..."
 	forge script $(PATH_BOOTSTRAP)/Approve.s.sol \
-		--rpc-url http://127.0.0.1:8545 \
+		--rpc-url $(RPC_URL) \
 		--broadcast \
 		--sender $(SENDER) \
 		--private-key $(PRIVATE_KEY)
@@ -101,7 +106,7 @@ weth-balance:
 		$(WETH) \
 		"balanceOf(address)" \
 		$(ADDR) \
-		--rpc-url http://127.0.0.1:8545 | cast from-wei
+		--rpc-url $(RPC_URL) | cast from-wei
 
 # ───────────────────────────────────────────────
 #   ETC.

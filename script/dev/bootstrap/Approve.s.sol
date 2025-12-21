@@ -11,6 +11,13 @@ import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
 import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
 
+/*
+    For multiple NFT collections
+    forge script Approve --sig "approveGremlin()"
+    forge script Approve --sig "approveWorm()"
+    forge script Approve --sig "approveWETH()"
+*/
+
 contract Approve is BaseDevScript, Config {
     function run() external {
         // --------------------------------
