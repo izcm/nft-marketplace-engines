@@ -87,7 +87,7 @@ dev-approve:
 
 dev-history:
 	@echo "📊 Making history..."
-	forge script $(PATH_HISTORY)/MakeHistory.s.sol --sig "week1()" \
+	forge script $(PATH_HISTORY)/MakeHistory.s.sol --sig "runWeek(uint256)" 1 \
 		--rpc-url $(RPC_URL) \
 		--broadcast \
 		--sender $(SENDER) \

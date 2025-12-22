@@ -12,7 +12,6 @@ import {SettlementRoles} from "orderbook/libs/SettlementRoles.sol";
 import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
 
 // periphery libraries
-import {MarketSim} from "periphery/MarketSim.sol";
 import {OrderBuilder} from "periphery/builders/OrderBuilder.sol";
 
 // interfaces
@@ -21,8 +20,8 @@ import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
 abstract contract BaseSettlement is Script {
     using OrderActs for OrderActs.Order;
 
-    address internal settlementContract; // futureproof name in case transfer auth decentralizes from order-settlementContract
-    address internal weth;
+    address private settlementContract; // futureproof name in case transfer auth decentralizes from order-settlementContract
+    address private weth;
 
     function _initBaseSettlement(
         address _settlementContract,
@@ -32,7 +31,7 @@ abstract contract BaseSettlement is Script {
         weth = _weth;
     }
 
-    function makeOrders(
+    function makeOrder(
         OrderActs.Side side,
         bool isCollectionBid,
         address collection,

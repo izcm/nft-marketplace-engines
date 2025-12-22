@@ -21,13 +21,15 @@ interface DNFT {
 }
 
 contract MakeHistory is BaseDevScript, BaseSettlement, Config {
-    uint256 internal HISTORY_START_TS;
+    // ctx
+    uint256 private historyStartTs;
+    uint256 private weekIdx;
 
     address[] internal collections;
 
-    mapping(address => uint256[]) colletionSelected;
+    mapping(address => uint256[]) internal collectionSelected;
 
-    function setUp() internal {
+    function _bootstrap() internal {
         // --------------------------------
         // PHASE 0: LOAD CONFIG
         // --------------------------------
@@ -40,7 +42,7 @@ contract MakeHistory is BaseDevScript, BaseSettlement, Config {
         console.log("ChainId: %s", chainId);
 
         // read .env
-        HISTORY_START_TS = vm.envUint("HISTORY_START_TS");
+        historyStartTs = vm.envUint("historyStartTs");
 
         // read deployments.toml
         address marketplace = config.get("marketplace").toAddress();
@@ -55,44 +57,81 @@ contract MakeHistory is BaseDevScript, BaseSettlement, Config {
         // collections.push(config.get("whatever_next").toAddress());
     }
 
-    function runWeek(uint256 weekIdx) external {
-        setUp();
-        _jumpToWeek(weekIdx);
-        _initOrders(weekIdx);
+    function runWeek(uint256 _weekIdx) external {
+        weekIdx = _weekIdx;
+        _bootstrap();
+        _jumpToWeek();
+
+        _collectAsks();
+        _collectBids();
+        _collectCollectionBids();
     }
 
     function finalize() external {
-        setUp();
+        _bootstrap();
         _jumpToNow();
     }
 
-    function _initOrders(uint256 weekIdx) internal {
+    function _collectAsks() internal {
+        logSection("COLLECT ORDERS - ASK");
+
         OrderActs.Side side = OrderActs.Side.Ask;
         bool isCollectionBid = false;
 
+        _collect(side, isCollectionBid);
+    }
+
+    function _collectBids() internal {
+        logSection("COLLECT ORDERS - BID");
+
+        OrderActs.Side side = OrderActs.Side.Bid;
+        bool isCollectionBid = false;
+
+        _collect(side, isCollectionBid);
+    }
+
+    function _collectCollectionBids() internal {
+        logSection("COLLECT ORDERS - COLLECTION BIDS");
+
+        OrderActs.Side side = OrderActs.Side.Bid;
+        bool isCollectionBid = true;
+
+        _collect(side, isCollectionBid);
+    }
+
+    function _collect(OrderActs.Side side, bool isCollectionBid) internal {
         for (uint256 i = 0; i < collections.length; i++) {
             address collection = collections[i];
 
-            uint256 seed = _seed(collection, side, isCollectionBid, weekIdx);
+            uint256 seed = _seed(collection, side, isCollectionBid);
 
             uint256 limit = DNFT(collection).MAX_SUPPLY();
             uint8 density = (uint8(seed) % 6) + 2; // [2..7]
 
-            MarketSim.selectTokens(collection, limit, density, seed);
+            uint256[] memory tokens = MarketSim.selectTokens(
+                collection,
+                limit,
+                density,
+                seed
+            );
+
+            uint256 count = tokens.length;
+
+            uint256[] storage acc = collectionSelected[collection];
+
+            for (uint256 j = 0; j < count; j++) {
+                acc.push(tokens[j]);
+            }
+
+            logTokenBalance("Selected tokens", collection, count);
+            logSeparator();
         }
-
-        // OrderActs.Order[] memory orders = new OrderActs.Order[](totalSelected);
-
-        // for each collection => selectTokens()
-
-        // push all selected to totalSelected and
     }
 
     function _seed(
         address collection,
         OrderActs.Side side,
-        bool isCollectionBid,
-        uint256 weekIdx
+        bool isCollectionBid
     ) internal returns (uint256) {
         return
             uint256(
@@ -106,9 +145,9 @@ contract MakeHistory is BaseDevScript, BaseSettlement, Config {
     // INTERNAL TIME HELPERS
     // --------------------------------
 
-    function _jumpToWeek(uint256 weekIndex) internal {
+    function _jumpToWeek() internal {
         // weekIndex = 0,1,2,3
-        vm.warp(HISTORY_START_TS + (weekIndex * 7 days));
+        vm.warp(historyStartTs + (weekIdx * 7 days));
     }
 
     function _jumpToNow() internal {

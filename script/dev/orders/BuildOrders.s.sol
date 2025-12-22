@@ -48,9 +48,10 @@ struct SignedOrder {
     }
 */
 
+// TODO: SWITCH TO METHODS IN BaseSettlement.s.sol
 contract BuildOrders is BaseDevScript, Config {
-    mapping(address => uint256) internal ownerPk;
-    mapping(address => uint256) internal nonceOf;
+    mapping(address => uint256) internal ownerPk; // dev-only private keys (never do this in a production script)
+    mapping(address => uint256) internal nonceOf; // todo: remove this and use keccak nonce instead
 
     function run() external {
         // --------------------------------
@@ -140,6 +141,7 @@ contract BuildOrders is BaseDevScript, Config {
     }
 
     function _makeOrders(
+        // todo: switch to base settlement
         address collection,
         address currency
     ) internal returns (OrderActs.Order[] memory) {
@@ -179,6 +181,7 @@ contract BuildOrders is BaseDevScript, Config {
     }
 
     function signOrder(
+        // todo: switch to base settlement
         OrderActs.Order memory order,
         uint256 actorPrivateKey,
         bytes32 domainSeparator
@@ -231,7 +234,7 @@ contract BuildOrders is BaseDevScript, Config {
             vm.serializeBytes32(sKey, "r", sig.r);
             vm.serializeBytes32(sKey, "s", sig.s);
 
-            // tried to avoid printing this value, but cannot avoid this!?
+            // tried to avoid including this value, but harder than imagined...
             string memory sigOut = vm.serializeString(sKey, "_", "0");
 
             string memory output = vm.serializeString(
