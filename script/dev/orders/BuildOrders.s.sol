@@ -14,9 +14,11 @@ import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 // local contracts
 import {OrderEngine} from "orderbook/OrderEngine.sol";
 
-// local libs
+// core libraries
 import {OrderActs} from "orderbook/libs/OrderActs.sol";
 import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
+
+// peiphery libraries
 import {OrderFactory} from "periphery/factories/OrderFactory.sol";
 import {MarketSim} from "periphery/MarketSim.sol";
 
@@ -32,24 +34,17 @@ struct SignedOrder {
 /*
     For multiple NFT collections:
 
-    Run one script call per collection:
-    forge script BuildOrders --sig "buildDNFT()"
-    forge script BuildOrders --sig "buildGremlin()"
-    forge script BuildOrders --sig "buildWorm()"
-
-    Each collection = independent market snapshot.
-    Do NOT loop collections inside run().
-
-    function buildGremlin() external {
+    function run() external {
         _loadConfig("deployments.toml", true);
-        address collection = config.get("dmrktgremlin").toAddress();
-        buildOrders(collection);
-    }
 
-    function buildWorm() external {
-        _loadConfig("deployments.toml", true);
-        address collection = config.get("dmrktworm").toAddress();
-        buildOrders(collection);
+        uint256 chainId = block.chainid;
+        uint256[] memory participantPks = readKeys(chainId);
+
+        address[] memory collections = _loadCollections();
+
+        for (uint256 i = 0; i < collections.length; i++) {
+            _buildOrders(collections[i], participantPks);
+        }
     }
 */
 
@@ -73,7 +68,7 @@ contract BuildOrders is BaseDevScript, Config {
         address weth = config.get("weth").toAddress();
 
         // deployed contracts
-        address dNft = config.get("dnft_erc721").toAddress();
+        address dNft = config.get("dmrktgremlin").toAddress();
         address verifyingContract = config
             .get("verifying_contract")
             .toAddress();
@@ -153,7 +148,8 @@ contract BuildOrders is BaseDevScript, Config {
         uint256[] memory selected = MarketSim.selectTokens(
             collection,
             DNFT(collection).MAX_SUPPLY() / 2,
-            3
+            3,
+            0 // seed
         );
 
         uint256 selectedCount = selected.length;
@@ -162,7 +158,7 @@ contract BuildOrders is BaseDevScript, Config {
         for (uint256 i = 0; i < selectedCount; i++) {
             uint256 tokenId = selected[i];
             address owner = token.ownerOf(tokenId);
-            uint256 price = MarketSim.priceOf(collection, tokenId);
+            uint256 price = MarketSim.priceOf(collection, tokenId, 0);
             uint256 nonce = ++nonceOf[owner];
 
             orders[i] = OrderFactory.simpleAsk(

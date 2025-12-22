@@ -13,20 +13,32 @@ import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
 /*
     for multiple NFT collections:
 
-    forge script BootstrapNFTs --sig "dmrktgremlin()"
-    forge script BootstrapNFTs --sig "dmrktworm()"
+    just loop over all nft collections in one loop its easier
 
-    function dmrktgremlin() external {
-        _loadConfig("deployments.toml");
-        address collection = config.get("dmrktgremlin").toAddress();
-        bootstrapNfts(collection);
+    function run() external {
+        _loadConfig("deployments.toml", true);
+
+        uint256 chainId = block.chainid;
+        uint256[] memory participantPks = readKeys(chainId);
+
+        address[] memory collections = _loadCollections();
+
+        for (uint256 i = 0; i < collections.length; i++) {
+            _bootstrapCollection(collections[i], participantPks);
+        }
     }
 
-    function dmrktworm() external {
-        _loadConfig("deployments.toml");
-        address collection = config.get("dmrktworm").toAddress();
-        bootstrapNfts(collection);
+    function _bootstrapCollection(
+        address collection,
+        uint256[] memory participantPks
+    ) internal {
+        IMintable721 nft = IMintable721(collection);
+        uint256 supply = nft.MAX_SUPPLY();
+
+        mintTokens(participantPks, nft, supply);
     }
+
+
 */
 
 interface IMintable721 is IERC721 {
@@ -46,7 +58,7 @@ contract BootstrapNFTs is BaseDevScript, Config {
         uint256 chainId = block.chainid;
         console.log("ChainId: %s", chainId);
 
-        address dNft = config.get("dnft_erc721").toAddress();
+        address dNft = config.get("dmrktgremlin").toAddress();
         logAddress("DNFT    ", dNft);
 
         // --- PKs for broadcasting ---

@@ -11,13 +11,6 @@ import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
 import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
 
-/*
-    For multiple NFT collections
-    forge script Approve --sig "approveGremlin()"
-    forge script Approve --sig "approveWorm()"
-    forge script Approve --sig "approveWETH()"
-*/
-
 contract Approve is BaseDevScript, Config {
     function run() external {
         // --------------------------------
@@ -31,7 +24,7 @@ contract Approve is BaseDevScript, Config {
         console.log("ChainId: %s", chainId);
 
         address weth = config.get("weth").toAddress();
-        address dNft = config.get("dnft_erc721").toAddress();
+        address dNft = config.get("dmrktgremlin").toAddress();
         address marketplace = config.get("marketplace").toAddress();
 
         logAddress("DNFT       ", dNft);

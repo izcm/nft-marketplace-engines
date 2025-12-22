@@ -50,6 +50,6 @@ contract DeployCore is BaseDevScript, Config {
         config.set("marketplace", address(orderEngine)); // nft bootstrap
 
         // nft contracts
-        config.set("dnft_erc721", address(dNft));
+        config.set("dmrktgremlin", address(dNft));
     }
 }
