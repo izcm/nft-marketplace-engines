@@ -19,7 +19,7 @@ interface DNFT {
     function MAX_SUPPLY() external view returns (uint256); // periphery tokens all implement this
 }
 
-contract MakeHistory is BaseDevScript, BaseSettlement, Config {
+contract SettleHistory is BaseDevScript, BaseSettlement, Config {
     // ctx
     uint256 private historyStartTs;
     uint256 private weekIdx;

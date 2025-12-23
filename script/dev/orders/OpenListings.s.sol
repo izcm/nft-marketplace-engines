@@ -24,10 +24,10 @@ struct SignedOrder {
     SigOps.Signature sig;
 }
 
-contract BuildOrders is BaseDevScript, BaseSettlement, Config {
+contract OpenListings is BaseDevScript, BaseSettlement, Config {
     // ctx
     uint256 chainId;
-    uint256 internal epoch = 3; // 3 because MakeHistory has [0, 1, 2]  (plz dont hardcode this forever)
+    uint256 internal epoch = 3; // 3 because SettleHistory has [0, 1, 2]  (plz dont hardcode this forever)
 
     address[] internal collections;
 
@@ -131,7 +131,7 @@ contract BuildOrders is BaseDevScript, BaseSettlement, Config {
             logSeparator();
         }
 
-        return _buildOrders(side, isCollectionBid);
+        return _OpenListings(side, isCollectionBid);
     }
 
     function _hydrateAndSelectTokens(
@@ -150,7 +150,7 @@ contract BuildOrders is BaseDevScript, BaseSettlement, Config {
         return MarketSim.selectTokens(collection, max, density, seed);
     }
 
-    function _buildOrders(
+    function _OpenListings(
         OrderModel.Side side,
         bool isCollectionBid
     ) internal view returns (OrderModel.Order[] memory) {

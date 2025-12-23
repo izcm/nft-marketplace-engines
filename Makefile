@@ -87,7 +87,7 @@ dev-approve:
 
 dev-history:
 	@echo "📊 Making history..."
-	forge script $(PATH_HISTORY)/MakeHistory.s.sol --sig "runWeek(uint256)" 1 \
+	forge script $(PATH_HISTORY)/SettleHistory.s.sol --sig "runWeek(uint256)" 1 \
 		--rpc-url $(RPC_URL) \
 		--broadcast \
 		--sender $(SENDER) \
@@ -95,7 +95,7 @@ dev-history:
 
 dev-build-orders:
 	@echo "🔨 Building orders..."
-	forge script $(PATH_ORDERS)/BuildOrders.s.sol \
+	forge script $(PATH_ORDERS)/OpenListings.s.sol \
 		$(FORGE_COMMON_FLAGS)
 
 
