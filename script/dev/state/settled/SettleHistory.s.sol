@@ -141,8 +141,6 @@ contract SettleHistory is BaseDevScript, BaseSettlement, Config {
         }
     }
 
-    // === UTILITIES ===
-
     // === TIME HELPERS ===
 
     function _jumpToWeek() internal {

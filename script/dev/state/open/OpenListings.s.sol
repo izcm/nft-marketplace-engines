@@ -11,8 +11,6 @@ import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
 
 // scripts
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
-import {BaseSettlement} from "dev/BaseSettlement.s.sol";
-
 import {OrderSampling} from "dev/logic/OrderSampling.s.sol";
 
 struct SignedOrder {
@@ -20,38 +18,41 @@ struct SignedOrder {
     SigOps.Signature sig;
 }
 
-contract OpenListings is BaseDevScript, BaseSettlement, OrderSampling, Config {
+contract OpenListings is BaseDevScript, OrderSampling, Config {
     // ctx
     uint256 chainId;
 
     function run() external {
         // === LOAD CONFIG ===
 
-        _loadConfig("deployments.toml", true);
+        {
+            logSection("CONFIG");
+            _loadConfig("deployments.toml", true);
 
-        logSection("CONFIG");
+            chainId = block.chainid;
+            console.log("ChainId: %s", chainId);
 
-        chainId = block.chainid;
-        console.log("ChainId: %s", chainId);
+            // currencies
+            address weth = config.get("weth").toAddress();
 
-        // currencies
-        address weth = config.get("weth").toAddress();
+            // deployed contracts
+            collections.push(config.get("dmrktgremlin").toAddress());
+            collections.push(config.get("dmrktseal").toAddress());
 
-        // deployed contracts
-        collections.push(config.get("dmrktgremlin").toAddress()); // TODO: will be more collections later
+            address settlementContract = config
+                .get("settlement_contract")
+                .toAddress();
 
-        address settlementContract = config
-            .get("settlement_contract")
-            .toAddress();
+            logAddress("SETTLER ", settlementContract);
 
-        logAddress("SETTLER ", settlementContract);
+            // === INITIALIZE AND SET PATHS ===
 
-        // === INITIALIZE AND SET PATHS ===
-        _initBaseSettlement(settlementContract, weth);
-        _initOrderSampling(0, 0, collections);
+            _initBaseSettlement(settlementContract, weth);
+            _initOrderSampling(0, 0, collections);
 
-        // loads pk => addr => to easily fetch addresses
-        _loadParticipants();
+            // loads pk => addr => to easily fetch addresses
+            _loadParticipants();
+        }
 
         string memory basePath = string.concat(
             "./data/",
@@ -96,16 +97,17 @@ contract OpenListings is BaseDevScript, BaseSettlement, OrderSampling, Config {
         }
     }
 
-    function _buildAndSignAsks() internal returns (SignedOrder[] memory) {
+    function _buildAndSignAsks() internal view returns (SignedOrder[] memory) {
         return _buildAndSignOrders(OrderModel.Side.Ask, false);
     }
 
-    function _buildAndSignBids() internal returns (SignedOrder[] memory) {
+    function _buildAndSignBids() internal view returns (SignedOrder[] memory) {
         return _buildAndSignOrders(OrderModel.Side.Bid, false);
     }
 
     function _buildAndSignCollectionBids()
         internal
+        view
         returns (SignedOrder[] memory)
     {
         return _buildAndSignOrders(OrderModel.Side.Bid, true);
@@ -114,8 +116,8 @@ contract OpenListings is BaseDevScript, BaseSettlement, OrderSampling, Config {
     function _buildAndSignOrders(
         OrderModel.Side side,
         bool isCollectionBid
-    ) internal returns (SignedOrder[] memory) {
-        OrderModel.Order[] memory orders = buildOrders(side, isCollectionBid); // OrderSampling builds the orders stored in collectionSelected mapping
+    ) internal view returns (SignedOrder[] memory) {
+        OrderModel.Order[] memory orders = buildOrders(side, isCollectionBid); // builds the orders stored in `OrderSampling.collectionSelected`
 
         uint256 count = orders.length;
 

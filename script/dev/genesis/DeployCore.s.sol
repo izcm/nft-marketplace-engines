@@ -4,14 +4,17 @@ pragma solidity ^0.8.30;
 import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
-// local
-import {BaseDevScript} from "dev/BaseDevScript.s.sol";
+// core contracts
 import {OrderEngine} from "orderbook/OrderEngine.sol";
-import {DMrktGremlin as DNFT} from "nfts/DMrktGremlin.ERC721.sol";
+
+// periphery contracts
+import {DMrktGremlin} from "nfts/DMrktGremlin.ERC721.sol";
+import {DMrktSeal} from "nfts/DMrktSeal.ERC721.sol";
+
+// scripts
+import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 
 contract DeployCore is BaseDevScript, Config {
-    OrderEngine public orderEngine;
-
     function run() external {
         // --------------------------------
         // PHASE 0: LOAD CONFIG
@@ -35,21 +38,33 @@ contract DeployCore is BaseDevScript, Config {
         // since the script uses the same private key its not necessary but I like to be explicit
         vm.startBroadcast(funderPk);
 
-        orderEngine = new OrderEngine(weth, msg.sender);
-        DNFT dNft = new DNFT();
+        // deploy core
+        OrderEngine orderEngine = new OrderEngine(weth, msg.sender);
+
+        // deploy periphery
+        DMrktGremlin gremlin = new DMrktGremlin();
+        DMrktSeal seal = new DMrktSeal();
 
         vm.stopBroadcast();
 
+        // log deployments
         logDeployment("OrderEngine", address(orderEngine));
-        logDeployment("DNFT", address(dNft));
+
+        logDeployment("DMrktGremlin", address(gremlin));
+        logDeployment("DMrktGremlin", address(seal));
 
         // ---  write deployed addrs to .toml ---
 
         // marketplace logic
-        config.set("settlement_contract", address(orderEngine)); // for our order builder
-        config.set("marketplace", address(orderEngine)); // nft bootstrap
+
+        // contract must implement the methods `DOMAIN_SEPARATOR()` and `isUserNonceInvalid()`
+        config.set("settlement_contract", address(orderEngine));
+
+        // contract must implement signature verification
+        config.set("signature_verifier", address(orderEngine)); // for our order builder
 
         // nft contracts
-        config.set("dmrktgremlin", address(dNft));
+        config.set("dmrktgremlin", address(gremlin));
+        config.set("dmrktseal", address(seal));
     }
 }
