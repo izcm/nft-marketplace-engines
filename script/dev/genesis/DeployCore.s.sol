@@ -47,23 +47,23 @@ contract DeployCore is BaseDevScript, Config {
 
         vm.stopBroadcast();
 
+        // push nft addresses to array
+        address[2] memory nfts = [address(gremlin), address(seal)];
+
         // log deployments
         logDeployment("OrderEngine", address(orderEngine));
 
         logDeployment("DMrktGremlin", address(gremlin));
         logDeployment("DMrktGremlin", address(seal));
 
-        // ---  write deployed addrs to .toml ---
+        // --------------------------------
+        // PHASE 2: WRITE TO .TOML
+        // --------------------------------
 
-        // marketplace logic
+        config.set("order_engine", address(orderEngine));
 
-        // contract must implement the methods `DOMAIN_SEPARATOR()` and `isUserNonceInvalid()`
-        config.set("settlement_contract", address(orderEngine));
+        // === DEPLOYED PERIPHERY NFTs ===
 
-        // contract must implement signature verification
-        config.set("signature_verifier", address(orderEngine)); // for our order builder
-
-        // nft contracts
         config.set("dmrktgremlin", address(gremlin));
         config.set("dmrktseal", address(seal));
     }

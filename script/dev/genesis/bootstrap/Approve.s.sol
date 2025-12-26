@@ -4,30 +4,30 @@ pragma solidity ^0.8.30;
 import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
-// local
+// scripts
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
+import {DevConfig} from "dev/DevConfig.s.sol";
 
 // interfaces
 import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
 import {IERC20} from "@openzeppelin/interfaces/IERC20.sol";
 
-contract Approve is BaseDevScript, Config {
+contract Approve is BaseDevScript, DevConfig {
     function run() external {
         // --------------------------------
         // PHASE 0: LOAD CONFIG
         // --------------------------------
-        _loadConfig("deployments.toml", true);
-
         logSection("LOAD CONFIG");
 
-        console.log("ChainId: %s", block.chainid);
+        address weth = readWeth();
+        address nftTransferAuth = readNftTransferAuth();
 
-        address weth = config.get("weth").toAddress();
-        address dNft = config.get("dmrktgremlin").toAddress();
-        address marketplace = config.get("marketplace").toAddress();
+        address[] memory nfts = readNfts();
+
+        address dNft = nfts[0];
 
         logAddress("DNFT       ", dNft);
-        logAddress("MARKETPLACE", marketplace);
+        logAddress("MARKETPLACE", nftTransferAuth);
 
         // --- PKs for broadcasting ---
         uint256[] memory participantPks = readKeys();
@@ -42,14 +42,14 @@ contract Approve is BaseDevScript, Config {
 
         for (uint256 i = 0; i < participantCount; i++) {
             vm.startBroadcast(participantPks[i]);
-            nftToken.setApprovalForAll(marketplace, true);
+            nftToken.setApprovalForAll(nftTransferAuth, true);
             vm.stopBroadcast();
 
             address owner = addrOf(participantPks[i]);
             console.log(
                 "%s HAS APPROVED DMRKT FOR ALL: ",
                 owner,
-                nftToken.isApprovedForAll(owner, marketplace)
+                nftToken.isApprovedForAll(owner, nftTransferAuth)
             );
         }
 
@@ -66,14 +66,14 @@ contract Approve is BaseDevScript, Config {
 
         for (uint256 i = 0; i < participantCount; i++) {
             vm.startBroadcast(participantPks[i]);
-            wethToken.approve(marketplace, allowance);
+            wethToken.approve(nftTransferAuth, allowance);
             vm.stopBroadcast();
 
             address owner = addrOf(participantPks[i]);
             console.log(
                 "%s HAS APPROVED ALLOWANCE FOR MARKETPLACE: ",
                 owner,
-                wethToken.allowance(owner, marketplace)
+                wethToken.allowance(owner, nftTransferAuth)
             );
         }
     }

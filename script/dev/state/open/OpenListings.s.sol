@@ -60,8 +60,6 @@ contract OpenListings is BaseDevScript, OrderSampling, Config {
             "/orders-raw"
         );
 
-        // === COLLECT ORDERS AND EXPORT ===
-
         logSection("COLLECTING ORDERS");
 
         // === collect => build => JSON ===
