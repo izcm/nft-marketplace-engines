@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
 // core libraries
@@ -13,13 +12,14 @@ import {MarketSim} from "periphery/MarketSim.sol";
 // scripts
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 import {BaseSettlement} from "dev/BaseSettlement.s.sol";
+import {DevConfig} from "dev/DevConfig.s.sol";
 
 // DNFT => DmrktNFT (all implements these functions)
 interface DNFT {
     function MAX_SUPPLY() external view returns (uint256); // periphery tokens all implement this
 }
 
-contract SettleHistory is BaseDevScript, BaseSettlement, Config {
+contract SettleHistory is BaseDevScript, BaseSettlement, DevConfig {
     // ctx
     uint256 private historyStartTs;
     uint256 private weekIdx;
@@ -51,8 +51,6 @@ contract SettleHistory is BaseDevScript, BaseSettlement, Config {
         // --------------------------------
         // PHASE 0: LOAD CONFIG
         // --------------------------------
-        _loadConfig("deployments.toml", true);
-
         logSection("LOAD CONFIG");
 
         uint256 chainId = block.chainid;
@@ -63,16 +61,12 @@ contract SettleHistory is BaseDevScript, BaseSettlement, Config {
         historyStartTs = vm.envUint("historyStartTs");
 
         // read deployments.toml
-        address marketplace = config.get("marketplace").toAddress();
-        address weth = config.get("weth").toAddress();
+        address settlementContract = readSettlementContract();
+        address weth = readWeth();
 
-        collections.push(config.get("dmrktgremlin").toAddress());
+        collections = readCollections();
 
-        _initBaseSettlement(marketplace, weth);
-
-        // collections.push(config.get("dmrktgremlin").toAddress());
-        // collections.push(config.get("kitz_erc721").toAddress());
-        // collections.push(config.get("whatever_next").toAddress());
+        _initBaseSettlement(settlementContract, weth);
     }
 
     // === PIPELINE ===

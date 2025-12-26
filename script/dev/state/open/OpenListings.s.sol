@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-// foundry
-import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
 // core libraries
@@ -11,6 +9,7 @@ import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
 
 // scripts
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
+import {DevConfig} from "dev/DevConfig.s.sol";
 import {OrderSampling} from "dev/logic/OrderSampling.s.sol";
 
 struct SignedOrder {
@@ -18,7 +17,7 @@ struct SignedOrder {
     SigOps.Signature sig;
 }
 
-contract OpenListings is BaseDevScript, OrderSampling, Config {
+contract OpenListings is BaseDevScript, OrderSampling, DevConfig {
     // ctx
     uint256 chainId;
 
@@ -27,25 +26,18 @@ contract OpenListings is BaseDevScript, OrderSampling, Config {
 
         {
             logSection("CONFIG");
-            _loadConfig("deployments.toml", true);
-
-            chainId = block.chainid;
-            console.log("ChainId: %s", chainId);
 
             // currencies
-            address weth = config.get("weth").toAddress();
+            address weth = readWeth();
 
             // deployed contracts
-            collections.push(config.get("dmrktgremlin").toAddress());
-            collections.push(config.get("dmrktseal").toAddress());
+            address[] memory collections = readCollections();
 
-            address settlementContract = config
-                .get("settlement_contract")
-                .toAddress();
+            address settlementContract = readSettlementContract();
 
             logAddress("SETTLER ", settlementContract);
 
-            // === INITIALIZE AND SET PATHS ===
+            // === INITIALIZE ===
 
             _initBaseSettlement(settlementContract, weth);
             _initOrderSampling(0, 0, collections);

@@ -1,29 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
 // local
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
+import {DevConfig} from "dev/DevConfig.s.sol";
 
 // interfaces
 import {IWETH} from "periphery/interfaces/IWETH.sol";
 
-contract BootstrapAccounts is BaseDevScript, Config {
+contract BootstrapAccounts is BaseDevScript, DevConfig {
     function run() external {
         // --------------------------------
         // PHASE 0: LOAD CONFIG
         // --------------------------------
-        _loadConfig("deployments.toml", true);
-
-        logSection("LOAD CONFIG");
-
-        console.log("ChainId: %s", block.chainid);
 
         // read deployments.toml
-        address funder = config.get("funder").toAddress();
-        address weth = config.get("weth").toAddress();
+        address funder = readFunder();
+        address weth = readWeth();
 
         // read .env
         uint256 funderPk = uint256(uint256(vm.envUint("PRIVATE_KEY")));

@@ -1,9 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Config} from "forge-std/Config.sol";
-import {console} from "forge-std/console.sol";
-
 // core contracts
 import {OrderEngine} from "orderbook/OrderEngine.sol";
 
@@ -13,21 +10,16 @@ import {DMrktSeal} from "nfts/DMrktSeal.ERC721.sol";
 
 // scripts
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
+import {DevConfig} from "dev/DevConfig.s.sol";
 
-contract DeployCore is BaseDevScript, Config {
+contract DeployCore is BaseDevScript, DevConfig {
+    uint256 constant NFT_COUNT = 2;
+
     function run() external {
         // --------------------------------
         // PHASE 0: LOAD CONFIG
         // --------------------------------
-        _loadConfig("deployments.toml", true);
-
-        logSection("LOAD CONFIG");
-
-        uint256 chainId = block.chainid;
-
-        console.log("ChainId: %s", chainId);
-
-        address weth = config.get("weth").toAddress();
+        address weth = readWeth();
         uint256 funderPk = uint256(uint256(vm.envUint("PRIVATE_KEY")));
 
         // --------------------------------
@@ -48,13 +40,13 @@ contract DeployCore is BaseDevScript, Config {
         vm.stopBroadcast();
 
         // push nft addresses to array
-        address[2] memory nfts = [address(gremlin), address(seal)];
+        address[NFT_COUNT] memory nfts = [address(gremlin), address(seal)];
 
         // log deployments
         logDeployment("OrderEngine", address(orderEngine));
 
         logDeployment("DMrktGremlin", address(gremlin));
-        logDeployment("DMrktGremlin", address(seal));
+        logDeployment("DMrktSeal", address(seal));
 
         // --------------------------------
         // PHASE 2: WRITE TO .TOML
@@ -64,7 +56,9 @@ contract DeployCore is BaseDevScript, Config {
 
         // === DEPLOYED PERIPHERY NFTs ===
 
-        config.set("dmrktgremlin", address(gremlin));
-        config.set("dmrktseal", address(seal));
+        config.set("nft0", address(gremlin));
+        config.set("nft1", address(seal));
+
+        config.set("nftCount", NFT_COUNT);
     }
 }

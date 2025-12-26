@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-// periphery libs
-import {MarketSim} from "periphery/MarketSim.sol";
-
 // core libs
 import {OrderModel} from "orderbook/libs/OrderModel.sol";
+
+// periphery libs
+import {MarketSim} from "periphery/MarketSim.sol";
 
 // scripts
 import {BaseSettlement} from "dev/BaseSettlement.s.sol";
@@ -36,6 +36,7 @@ import {DNFT} from "periphery/interfaces/DNFT.sol";
 
     Do this after implementing `SettleHistory`
  */
+
 abstract contract OrderSampling is BaseSettlement {
     uint256 private epoch; // used to set order.timestamps
     uint256 private seedSalt; // lets child contracts influence seeds for selecting tokensIds

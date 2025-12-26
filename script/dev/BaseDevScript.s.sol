@@ -8,7 +8,7 @@ abstract contract BaseDevScript is Script {
     mapping(address => uint256) private _ownerPk;
     address[] private _participants;
 
-    // Call this if the script needs to have easy access to pk => addr
+    // Call this if the script needs easy access to pk => addr
     function _loadParticipants() internal {
         uint256[] memory pks = readKeys();
 

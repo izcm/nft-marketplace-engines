@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {Config} from "forge-std/Config.sol";
 import {console} from "forge-std/console.sol";
 
 // scripts
@@ -17,46 +16,45 @@ contract Approve is BaseDevScript, DevConfig {
         // --------------------------------
         // PHASE 0: LOAD CONFIG
         // --------------------------------
-        logSection("LOAD CONFIG");
-
         address weth = readWeth();
+
         address nftTransferAuth = readNftTransferAuth();
+        address allowanceSpender = readAllowanceSpender();
 
-        address[] memory nfts = readNfts();
-
-        address dNft = nfts[0];
-
-        logAddress("DNFT       ", dNft);
-        logAddress("MARKETPLACE", nftTransferAuth);
+        address[] memory collections = readCollections();
 
         // --- PKs for broadcasting ---
         uint256[] memory participantPks = readKeys();
         uint256 participantCount = participantPks.length;
 
         // --------------------------------
-        // PHASE 1: MARKETPLACE TRANSFER
+        // PHASE 1: NFT TRANSFER AUTH
         // --------------------------------
-        logSection("APPROVE MARKETPLACE FOR NFTs");
+        logSection("APPROVE NFT TRANSFER AUTH");
 
-        IERC721 nftToken = IERC721(address(dNft));
+        for (uint256 i = 0; i < collections.length; i++) {
+            IERC721 collectionToken = IERC721(collections[i]);
 
-        for (uint256 i = 0; i < participantCount; i++) {
-            vm.startBroadcast(participantPks[i]);
-            nftToken.setApprovalForAll(nftTransferAuth, true);
-            vm.stopBroadcast();
+            logSection(string.concat("APPROVE COLLECTION #", vm.toString(i)));
 
-            address owner = addrOf(participantPks[i]);
-            console.log(
-                "%s HAS APPROVED DMRKT FOR ALL: ",
-                owner,
-                nftToken.isApprovedForAll(owner, nftTransferAuth)
-            );
+            for (uint256 j = 0; j < participantCount; j++) {
+                vm.startBroadcast(participantPks[j]);
+                collectionToken.setApprovalForAll(nftTransferAuth, true);
+                vm.stopBroadcast();
+
+                address owner = addrOf(participantPks[j]);
+                console.log(
+                    "%s HAS APPROVED DMRKT FOR ALL: ",
+                    owner,
+                    collectionToken.isApprovedForAll(owner, nftTransferAuth)
+                );
+            }
         }
 
         // --------------------------------
         // PHASE 2: WETH ALLOWANCE
         // --------------------------------
-        logSection("APPROVE WETH ALLOWANCE FOR MARKETPLACE");
+        logSection("APPROVE WETH ALLOWANCE FOR NFT TRANSFER AUTH");
 
         // DEV-ONLY:
         // Infinite approval used ONLY for local fork / deterministic setup.
@@ -66,14 +64,14 @@ contract Approve is BaseDevScript, DevConfig {
 
         for (uint256 i = 0; i < participantCount; i++) {
             vm.startBroadcast(participantPks[i]);
-            wethToken.approve(nftTransferAuth, allowance);
+            wethToken.approve(allowanceSpender, allowance);
             vm.stopBroadcast();
 
             address owner = addrOf(participantPks[i]);
             console.log(
-                "%s HAS APPROVED ALLOWANCE FOR MARKETPLACE: ",
+                "%s HAS APPROVED ALLOWANCE FOR SPENDER: ",
                 owner,
-                wethToken.allowance(owner, nftTransferAuth)
+                wethToken.allowance(owner, allowanceSpender)
             );
         }
     }
