@@ -33,7 +33,7 @@ contract DeployCore is BaseDevScript, DevConfig {
         // deploy core
         OrderEngine orderEngine = new OrderEngine(weth, msg.sender);
 
-        // deploy periphery
+        // deploy nfts
         DMrktGremlin gremlin = new DMrktGremlin();
         DMrktSeal seal = new DMrktSeal();
 
@@ -53,9 +53,9 @@ contract DeployCore is BaseDevScript, DevConfig {
 
         // === DEPLOYED PERIPHERY NFTs ===
 
-        config.set("nft_0", address(gremlin));
-        config.set("nft_1", address(seal));
+        config.set("nft_c_0", address(gremlin));
+        config.set("nft_c_1", address(seal));
 
-        config.set("nft_count", NFT_COUNT);
+        config.set("nft_c_count", NFT_COUNT);
     }
 }

@@ -50,9 +50,9 @@ abstract contract BaseDevScript is Script {
     // --- LOG HELPERS ---
 
     function logSection(string memory title) internal pure {
-        console.log("------------------------------------");
+        logSeparator();
         console.log(title);
-        console.log("------------------------------------");
+        logSeparator();
     }
 
     function logDeployment(
@@ -84,14 +84,19 @@ abstract contract BaseDevScript is Script {
     }
 
     function logSeparator() internal pure {
-        console.log("------------------------------------");
+        console.log("--------------------");
     }
 
     function logNFTMint(
-        address nft,
+        address collection,
         uint256 tokenId,
         address to
     ) internal pure {
-        console.log("MINT | nft: %s | tokenId: %s | to: %s", nft, tokenId, to);
+        console.log(
+            "MINT | collection: %s | tokenId: %s | to: %s",
+            collection,
+            tokenId,
+            to
+        );
     }
 }
