@@ -1,32 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
-import {console} from "forge-std/console.sol";
-
 // core libraries
 import {OrderModel} from "orderbook/libs/OrderModel.sol";
-
-// periphery libraries
-import {MarketSim} from "periphery/MarketSim.sol";
+import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
 
 // scripts
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 import {BaseSettlement} from "dev/BaseSettlement.s.sol";
 import {DevConfig} from "dev/DevConfig.s.sol";
+import {OrderSampling} from "dev/logic/OrderSampling.s.sol";
 
-// DNFT => DmrktNFT (all implements these functions)
-interface DNFT {
-    function MAX_SUPPLY() external view returns (uint256); // periphery tokens all implement this
+struct SignedOrder {
+    OrderModel.Order order;
+    SigOps.Signature sig;
 }
 
-contract SettleHistory is BaseDevScript, BaseSettlement, DevConfig {
+contract SettleHistory is
+    BaseDevScript,
+    BaseSettlement,
+    OrderSampling,
+    DevConfig
+{
     // ctx
-    uint256 private historyStartTs;
     uint256 private weekIdx;
-
-    address[] internal collections;
-
-    mapping(address => uint256[]) internal collectionSelected;
 
     // === ENTRYPOINTS ===
 
@@ -35,9 +32,7 @@ contract SettleHistory is BaseDevScript, BaseSettlement, DevConfig {
         _bootstrap();
         _jumpToWeek();
 
-        _collectAsks();
-        _collectBids();
-        _collectCollectionBids();
+        _collect();
     }
 
     function finalize() external {
@@ -48,101 +43,119 @@ contract SettleHistory is BaseDevScript, BaseSettlement, DevConfig {
     // === SETUP / ENVIRONMENT ===
 
     function _bootstrap() internal {
-        // --------------------------------
-        // PHASE 0: LOAD CONFIG
-        // --------------------------------
-        logSection("LOAD CONFIG");
-
-        uint256 chainId = block.chainid;
-
-        console.log("ChainId: %s", chainId);
-
-        // read .env
-        historyStartTs = vm.envUint("historyStartTs");
-
-        // read deployments.toml
         address settlementContract = readSettlementContract();
         address weth = readWeth();
 
-        collections = readCollections();
+        address[] memory collections = readCollections();
 
         _initBaseSettlement(settlementContract, weth);
+        _initOrderSampling(0, 0, collections);
     }
 
-    // === PIPELINE ===
-
-    function _collectAsks() internal {
-        logSection("COLLECT ORDERS - ASK");
-
-        OrderModel.Side side = OrderModel.Side.Ask;
-        bool isCollectionBid = false;
-
-        _collect(side, isCollectionBid);
-    }
-
-    function _collectBids() internal {
-        logSection("COLLECT ORDERS - BID");
-
-        OrderModel.Side side = OrderModel.Side.Bid;
-        bool isCollectionBid = false;
-
-        _collect(side, isCollectionBid);
-    }
-
-    function _collectCollectionBids() internal {
-        logSection("COLLECT ORDERS - COLLECTION BIDS");
-
-        OrderModel.Side side = OrderModel.Side.Bid;
-        bool isCollectionBid = true;
-
-        _collect(side, isCollectionBid);
-    }
-
-    function _collect(OrderModel.Side side, bool isCollectionBid) internal {
-        for (uint256 i = 0; i < collections.length; i++) {
-            address collection = collections[i];
-
-            uint256 seed = orderSalt(
-                collection,
-                side,
-                isCollectionBid,
-                weekIdx
-            );
-
-            uint256 limit = DNFT(collection).MAX_SUPPLY();
-
-            // Safe: uint8(seed) % 6 ∈ [0..5], +2 ⇒ [2..7]
-            // forge-lint: disable-next-line(unsafe-typecast)
-            uint8 density = (uint8(seed) % 6) + 2;
-
-            uint256[] memory tokens = MarketSim.selectTokens(
-                collection,
-                limit,
-                density,
-                seed
-            );
-
-            uint256 count = tokens.length;
-
-            uint256[] storage acc = collectionSelected[collection];
-
-            for (uint256 j = 0; j < count; j++) {
-                acc.push(tokens[j]);
-            }
-
-            logTokenBalance("Selected tokens", collection, count);
-            logSeparator();
+    function _handleSigned(SignedOrder[] memory order) internal {
+        if (!_isFinalWeek()) {
+            // order by nonce and fulfill
+        } else {
+            // write to
         }
+    }
+
+    function _collect() internal {
+        // === collect => build ===
+
+        {
+            collectAsks(); // collects and stores tokenids with `ask` seed
+
+            SignedOrder[] memory signed = _buildAndSignAsks();
+
+            // _persistSignedOrders(signed, string.concat(basePath, ".ask.json"));
+        }
+
+        // BIDS
+
+        {
+            collectBids(); // collects and stores tokenids with `ask` seed
+
+            SignedOrder[] memory signed = _buildAndSignBids();
+
+            // _persistSignedOrders(signed, string.concat(basePath, ".bid.json"));
+        }
+
+        // COLLECTION BIDS
+
+        {
+            collectCollectionBids(); // collects and stores tokenids with `ask` seed
+
+            SignedOrder[] memory signed = _buildAndSignCollectionBids();
+
+            // _persistSignedOrders(signed, string.concat(basePath, ".cb.json"));
+        }
+    }
+
+    function _buildAndSignAsks() internal view returns (SignedOrder[] memory) {
+        return _buildAndSignOrders(OrderModel.Side.Ask, false);
+    }
+
+    function _buildAndSignBids() internal view returns (SignedOrder[] memory) {
+        return _buildAndSignOrders(OrderModel.Side.Bid, false);
+    }
+
+    function _buildAndSignCollectionBids()
+        internal
+        view
+        returns (SignedOrder[] memory)
+    {
+        return _buildAndSignOrders(OrderModel.Side.Bid, true);
+    }
+
+    function _buildAndSignOrders(
+        OrderModel.Side side,
+        bool isCollectionBid
+    ) internal view returns (SignedOrder[] memory) {
+        OrderModel.Order[] memory orders = buildOrders(side, isCollectionBid); // builds the orders stored in `OrderSampling.collectionSelected`
+
+        uint256 count = orders.length;
+
+        SignedOrder[] memory signed = new SignedOrder[](count);
+
+        for (uint256 i = 0; i < count; i++) {
+            OrderModel.Order memory order = orders[i];
+
+            uint256 pk = pkOf(order.actor);
+            require(pk != 0, "NO PK FOR ACTOR");
+
+            (SigOps.Signature memory sig) = signOrder(order, pk);
+
+            signed[i] = SignedOrder({order: order, sig: sig});
+        }
+
+        return signed;
     }
 
     // === TIME HELPERS ===
 
     function _jumpToWeek() internal {
-        // weekIndex = 0,1,2,3
-        vm.warp(historyStartTs + (weekIdx * 7 days));
+        uint256 startTs = _readStartTimestamp();
+        vm.warp(startTs + (weekIdx * 7 days));
     }
 
     function _jumpToNow() internal {
-        vm.warp(vm.envUint("NOW_TS"));
+        vm.warp(config.get("now_ts").toUint256());
+    }
+
+    // === PRIVATE ===
+
+    // only this script uses reads timestamp so readers are moved here
+    function _readStartTimestamp() private view returns (uint256) {
+        return config.get("history_start_ts").toUint256();
+    }
+
+    function _isFinalWeek() private view returns (bool) {
+        return config.get("final_week_idx").toUint256() == weekIdx;
+    }
+
+    function _basePath() private view returns (string memory) {
+        return
+            string.concat("./data/", vm.toString(block.chainid), "/orders-raw");
     }
 }

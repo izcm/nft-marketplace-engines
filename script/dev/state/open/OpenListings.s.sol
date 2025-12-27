@@ -22,11 +22,11 @@ contract OpenListings is BaseDevScript, OrderSampling, DevConfig {
     uint256 chainId;
 
     function run() external {
+        chainId = block.chainid;
+
         // === LOAD CONFIG ===
 
         {
-            logSection("CONFIG");
-
             // currencies
             address weth = readWeth();
 
@@ -45,86 +45,6 @@ contract OpenListings is BaseDevScript, OrderSampling, DevConfig {
             // loads pk => addr => to easily fetch addresses
             _loadParticipants();
         }
-
-        string memory basePath = string.concat(
-            "./data/",
-            vm.toString(chainId),
-            "/orders-raw"
-        );
-
-        logSection("COLLECTING ORDERS");
-
-        // === collect => build => JSON ===
-
-        // ASKS
-
-        {
-            collectAsks(); // collects and stores tokenids with `ask` seed
-
-            SignedOrder[] memory signed = _buildAndSignAsks();
-
-            _persistSignedOrders(signed, string.concat(basePath, ".ask.json"));
-        }
-
-        // BIDS
-
-        {
-            collectBids(); // collects and stores tokenids with `ask` seed
-
-            SignedOrder[] memory signed = _buildAndSignBids();
-
-            _persistSignedOrders(signed, string.concat(basePath, ".bid.json"));
-        }
-
-        // COLLECTION BIDS
-
-        {
-            collectCollectionBids(); // collects and stores tokenids with `ask` seed
-
-            SignedOrder[] memory signed = _buildAndSignCollectionBids();
-
-            _persistSignedOrders(signed, string.concat(basePath, ".cb.json"));
-        }
-    }
-
-    function _buildAndSignAsks() internal view returns (SignedOrder[] memory) {
-        return _buildAndSignOrders(OrderModel.Side.Ask, false);
-    }
-
-    function _buildAndSignBids() internal view returns (SignedOrder[] memory) {
-        return _buildAndSignOrders(OrderModel.Side.Bid, false);
-    }
-
-    function _buildAndSignCollectionBids()
-        internal
-        view
-        returns (SignedOrder[] memory)
-    {
-        return _buildAndSignOrders(OrderModel.Side.Bid, true);
-    }
-
-    function _buildAndSignOrders(
-        OrderModel.Side side,
-        bool isCollectionBid
-    ) internal view returns (SignedOrder[] memory) {
-        OrderModel.Order[] memory orders = buildOrders(side, isCollectionBid); // builds the orders stored in `OrderSampling.collectionSelected`
-
-        uint256 count = orders.length;
-
-        SignedOrder[] memory signed = new SignedOrder[](count);
-
-        for (uint256 i = 0; i < count; i++) {
-            OrderModel.Order memory order = orders[i];
-
-            uint256 pk = pkOf(order.actor);
-            require(pk != 0, "NO PK FOR ACTOR");
-
-            (SigOps.Signature memory sig) = signOrder(order, pk);
-
-            signed[i] = SignedOrder({order: order, sig: sig});
-        }
-
-        return signed;
     }
 
     function _persistSignedOrders(

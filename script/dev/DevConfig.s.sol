@@ -39,11 +39,11 @@ contract DevConfig is Config {
     }
 
     function readCollections() internal view returns (address[] memory) {
-        uint256 count = config.get("nftCount").toUint256();
+        uint256 count = config.get("nft_count").toUint256();
         address[] memory nfts = new address[](count);
         for (uint256 i; i < count; i++) {
             nfts[i] = config
-                .get(string.concat("nft", vm.toString(i)))
+                .get(string.concat("nft_", vm.toString(i)))
                 .toAddress();
         }
         return nfts;

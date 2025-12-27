@@ -56,8 +56,8 @@ contract DeployCore is BaseDevScript, DevConfig {
 
         // === DEPLOYED PERIPHERY NFTs ===
 
-        config.set("nft0", address(gremlin));
-        config.set("nft1", address(seal));
+        config.set("nft_0", address(gremlin));
+        config.set("nft_1", address(seal));
 
         config.set("nftCount", NFT_COUNT);
     }
