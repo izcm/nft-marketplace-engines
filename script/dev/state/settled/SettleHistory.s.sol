@@ -17,6 +17,7 @@ import {SignedOrder, SampleMode, Selection} from "dev/state/Types.sol";
 
 // interfaces
 import {ISettlementEngine} from "periphery/interfaces/ISettlementEngine.sol";
+import {DNFT} from "periphery/interfaces/DNFT.sol";
 
 contract SettleHistory is
     OrderSampling,
@@ -27,10 +28,7 @@ contract SettleHistory is
     // ctx
     uint256 private weekIdx;
 
-    bytes32 domainSeparator;
-
-    SignedOrder[] signed;
-    address[] collections;
+    bytes32 private domainSeparator;
 
     // === ENTRYPOINTS ===
 
@@ -39,16 +37,34 @@ contract SettleHistory is
         _bootstrap();
         _jumpToWeek();
 
+        address[] memory collections = readCollections();
+
+        uint256 max;
+
+        for (uint256 i = 0; i < collections.length; i++) {
+            max += DNFT(collections[i]).totalSupply();
+        }
+
+        OrderModel.Order[] memory orders = new OrderModel.Order[](max);
+
         {
             // === SELECT TOKENIDS ===
 
-            Selection[] memory selectionAsks = _collect(SampleMode.Ask);
-            Selection[] memory selectionBids = _collect(SampleMode.Bid);
+            Selection[] memory selectionAsks = _collect(
+                SampleMode.Ask,
+                collections
+            );
+            Selection[] memory selectionBids = _collect(
+                SampleMode.Bid,
+                collections
+            );
             Selection[] memory selectionCbs = _collect(
-                SampleMode.CollectionBid
+                SampleMode.CollectionBid,
+                collections
             );
 
             // === BUILD ORDERS ===
+
             OrderModel.Order[] memory asks = _buildOrdersFromSelections(
                 selectionAsks,
                 SampleMode.Ask
@@ -64,10 +80,18 @@ contract SettleHistory is
                 SampleMode.CollectionBid
             );
 
+            uint256 count = asks.length + bids.length + cbs.length;
+
+            assembly {
+                mstore(orders, count)
+            }
+
             // == SIGN ORDERS ===
 
             // for(uint i = 0; i < )
         }
+
+        SignedOrder[] memory signed = new SignedOrder[](orders.length);
 
         // === FULFILL OR EXPORT ===
 
@@ -88,13 +112,13 @@ contract SettleHistory is
         domainSeparator = ISettlementEngine(settlementContract)
             .DOMAIN_SEPARATOR();
 
-        collections = readCollections();
-
+        _initOrderSampling(settlementContract, weth);
         _loadParticipants();
     }
 
     function _collect(
-        SampleMode mode
+        SampleMode mode,
+        address[] memory collections
     ) internal view returns (Selection[] memory selections) {
         selections = new Selection[](collections.length);
 
@@ -108,10 +132,11 @@ contract SettleHistory is
             bool isCollectionBid = (mode == SampleMode.CollectionBid);
 
             uint256[] memory tokens = hydrateAndSelectTokens(
-                weekIdx,
                 side,
                 isCollectionBid,
-                collection
+                collection,
+                DNFT(collection).totalSupply(),
+                weekIdx
             );
 
             selections[i] = Selection({

@@ -12,7 +12,6 @@ import {MarketSim} from "periphery/MarketSim.sol";
 // interfaces
 import {IERC721} from "@openzeppelin/interfaces/IERC721.sol";
 import {ISettlementEngine} from "periphery/interfaces/ISettlementEngine.sol";
-import {DNFT} from "periphery/interfaces/DNFT.sol";
 
 abstract contract OrderSampling is Script {
     address private weth;
@@ -27,21 +26,33 @@ abstract contract OrderSampling is Script {
         weth = _weth;
     }
 
-    function hydrateAndSelectTokens(
-        uint256 epoch,
+    function orderSalt(
+        address collection,
         OrderModel.Side side,
         bool isCollectionBid,
-        address collection
+        uint256 saltSeed
+    ) internal pure returns (uint256) {
+        return
+            uint256(
+                keccak256(
+                    abi.encode(collection, side, isCollectionBid, saltSeed)
+                )
+            );
+    }
+
+    function hydrateAndSelectTokens(
+        OrderModel.Side side,
+        bool isCollectionBid,
+        address collection,
+        uint256 scanLimit,
+        uint256 seedSalt
     ) internal view returns (uint256[] memory) {
-        uint256 max = DNFT(collection).totalSupply();
-
-        uint256 seed = _orderSalt(collection, side, isCollectionBid, epoch);
-
+        uint256 seed = orderSalt(collection, side, isCollectionBid, seedSalt);
         // Safe: uint8(seed) % 6 ∈ [0..5], +2 ⇒ [2..7]
         // forge-lint: disable-next-line(unsafe-typecast)
         uint8 density = (uint8(seed) % 6) + 2;
 
-        return MarketSim.selectTokens(collection, max, density, seed);
+        return MarketSim.selectTokens(collection, scanLimit, density, seed);
     }
 
     function makeOrder(
@@ -54,9 +65,7 @@ abstract contract OrderSampling is Script {
 
         uint256 j = 0;
 
-        uint256 seed = uint256(
-            keccak256(abi.encode(collection, tokenId, side, isCollectionBid, j))
-        );
+        uint256 seed = uint256(orderSalt(collection, side, isCollectionBid, j));
 
         while (
             ISettlementEngine(settlementContract).isUserOrderNonceInvalid(
@@ -89,19 +98,5 @@ abstract contract OrderSampling is Script {
         uint256 attempt
     ) private pure returns (uint256) {
         return uint256(keccak256(abi.encode(seed, attempt)));
-    }
-
-    function _orderSalt(
-        address collection,
-        OrderModel.Side side,
-        bool isCollectionBid,
-        uint256 saltSeed
-    ) internal pure returns (uint256) {
-        return
-            uint256(
-                keccak256(
-                    abi.encode(collection, side, isCollectionBid, saltSeed)
-                )
-            );
     }
 }
