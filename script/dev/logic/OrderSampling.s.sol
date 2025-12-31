@@ -49,22 +49,12 @@ abstract contract OrderSampling is Script {
         uint256 tokenId,
         address currency,
         address actor,
-        address settlementContract
+        address settlementContract,
+        uint256 nonceIdx
     ) internal view returns (OrderModel.Order memory order) {
-        uint256 nonceIdx = 0;
-
         uint256 seed = uint256(
             orderSalt(side, isCollectionBid, collection, nonceIdx)
         );
-
-        while (
-            ISettlementEngine(settlementContract).isUserOrderNonceInvalid(
-                actor,
-                _nonce(seed, nonceIdx)
-            )
-        ) {
-            nonceIdx++;
-        }
 
         order = OrderModel.Order({
             side: side,

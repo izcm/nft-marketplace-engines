@@ -57,7 +57,7 @@ contract BootstrapAccounts is BaseDevScript, DevConfig {
 
             logBalance("PRE ", a);
 
-            (bool ok,) = payable(a).call{value: bootstrapEth}("");
+            (bool ok, ) = payable(a).call{value: bootstrapEth}("");
 
             if (!ok) {
                 console.log("TRANSFER FAILED -> %s", a);
@@ -78,7 +78,7 @@ contract BootstrapAccounts is BaseDevScript, DevConfig {
         uint256 wethWrapAmount = bootstrapEth / 2;
         IWETH wethToken = IWETH(weth);
 
-        for (uint256 i = 1; i < participantCount; i++) {
+        for (uint256 i = 0; i < participantCount; i++) {
             address a = addrOf(participantPks[i]);
             logTokenBalance("PRE  WETH", a, wethToken.balanceOf(a));
 

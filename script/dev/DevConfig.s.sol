@@ -27,7 +27,7 @@ contract DevConfig is Config {
         return config.get("funder").toAddress();
     }
 
-    // contract implementing methods `DOMAIN_SEPARATOR()` and `isUserNonceInvalid()`
+    // contract implementing methods `settle` `DOMAIN_SEPARATOR()` and `isUserNonceInvalid()`
     function readSettlementContract() internal view returns (address) {
         return _orderEngine();
     }
@@ -58,7 +58,9 @@ contract DevConfig is Config {
         uint256 count = config.get("nft_c_count").toUint256();
         address[] memory nfts = new address[](count);
         for (uint256 i; i < count; i++) {
-            nfts[i] = config.get(string.concat("nft_c_", vm.toString(i))).toAddress();
+            nfts[i] = config
+                .get(string.concat("nft_c_", vm.toString(i)))
+                .toAddress();
         }
         return nfts;
     }

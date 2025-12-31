@@ -196,7 +196,8 @@ contract BuildHistory is
                     tokenId,
                     weth,
                     actor,
-                    settlementContract
+                    settlementContract,
+                    j + i
                 );
             }
         }

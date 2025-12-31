@@ -40,7 +40,8 @@ contract OrderEngine is ReentrancyGuard {
 
     // TODO: mapping(address => mapping(uint256 => uint256)) nonceBitmap;
     // ====> each uint256 packs 256 nonces
-    mapping(address => mapping(uint256 => bool)) private _isUserOrderNonceInvalid;
+    mapping(address => mapping(uint256 => bool))
+        private _isUserOrderNonceInvalid;
 
     event Settlement(
         bytes32 indexed orderHash,
@@ -52,7 +53,7 @@ contract OrderEngine is ReentrancyGuard {
         uint256 price
     );
 
-    constructor(address weth, address feeRecipient) {
+    constructor(address _weth, address _protocolFeeRecipient) {
         DOMAIN_SEPARATOR = keccak256(
             abi.encode(
                 // EIP-712 domain type hash
@@ -67,8 +68,8 @@ contract OrderEngine is ReentrancyGuard {
             )
         );
 
-        WETH = weth;
-        protocolFeeRecipient = feeRecipient;
+        WETH = _weth;
+        protocolFeeRecipient = _protocolFeeRecipient;
     }
 
     // ===== EXTERNAL FUNCTIONS =====
@@ -76,11 +77,11 @@ contract OrderEngine is ReentrancyGuard {
     /**
      * @notice Matches a `Fill` request to an existing `Order`
      */
-    function settle(OrderModel.Fill calldata fill, OrderModel.Order calldata order, SigOps.Signature calldata sig)
-        external
-        payable
-        nonReentrant
-    {
+    function settle(
+        OrderModel.Fill calldata fill,
+        OrderModel.Order calldata order,
+        SigOps.Signature calldata sig
+    ) external payable nonReentrant {
         // Fill request actor must be msg.sender
         require(msg.sender == fill.actor, UnauthorizedFillActor());
 
@@ -95,7 +96,8 @@ contract OrderEngine is ReentrancyGuard {
         _isUserOrderNonceInvalid[order.actor][order.nonce] = true;
 
         // decide roles and asset
-        (address nftHolder, address spender, uint256 tokenId) = SettlementRoles.resolve(fill, order);
+        (address nftHolder, address spender, uint256 tokenId) = SettlementRoles
+            .resolve(fill, order);
 
         _settlePayment(order.currency, spender, nftHolder, order.price);
 
@@ -112,7 +114,10 @@ contract OrderEngine is ReentrancyGuard {
         );
     }
 
-    function isUserOrderNonceInvalid(address user, uint256 nonce) external view returns (bool) {
+    function isUserOrderNonceInvalid(
+        address user,
+        uint256 nonce
+    ) external view returns (bool) {
         return _isUserOrderNonceInvalid[user][nonce];
     }
 
@@ -121,7 +126,12 @@ contract OrderEngine is ReentrancyGuard {
     /**
      * @param currency: per today always WETH.
      */
-    function _settlePayment(address currency, address from, address to, uint256 amount) internal {
+    function _settlePayment(
+        address currency,
+        address from,
+        address to,
+        uint256 amount
+    ) internal {
         uint256 sellerCompensation = amount;
 
         // stage 1: calculate protocol fee
@@ -129,14 +139,18 @@ contract OrderEngine is ReentrancyGuard {
             uint256 feeAmount = (amount * PROTOCOL_FEE_BPS) / 10000;
 
             // using SafeERC20 for future proofing
-            IERC20(currency).safeTransferFrom(from, protocolFeeRecipient, feeAmount);
+            IERC20(currency).safeTransferFrom(
+                from,
+                protocolFeeRecipient,
+                feeAmount
+            );
 
             sellerCompensation -= feeAmount;
         }
 
         // stage 2:  calculate royalty fee
         {
-        // IERC20(WETH).safeTransferFrom
+            // IERC20(WETH).safeTransferFrom
         }
 
         // stage 3: compensate seller
@@ -145,7 +159,12 @@ contract OrderEngine is ReentrancyGuard {
         }
     }
 
-    function _transferNft(address collection, address from, address to, uint256 tokenId) internal {
+    function _transferNft(
+        address collection,
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal {
         if (!IERC165(collection).supportsInterface(INTERFACE_ID_ERC721)) {
             revert UnsupportedCollection();
         }
@@ -158,18 +177,27 @@ contract OrderEngine is ReentrancyGuard {
     /**
      * @notice Validates order.
      */
-    function _validateOrder(OrderModel.Order calldata order, bytes32 orderHash, uint8 v, bytes32 r, bytes32 s)
-        internal
-        view
-    {
+    function _validateOrder(
+        OrderModel.Order calldata order,
+        bytes32 orderHash,
+        uint8 v,
+        bytes32 r,
+        bytes32 s
+    ) internal view {
         // Signer != addr(0)
         require(order.actor != address(0), ZeroActor());
 
         // Valid order nonce
-        require(!_isUserOrderNonceInvalid[order.actor][order.nonce], InvalidNonce());
+        require(
+            !_isUserOrderNonceInvalid[order.actor][order.nonce],
+            InvalidNonce()
+        );
 
         // Valid timestamps
-        require(order.start <= block.timestamp && order.end >= block.timestamp, InvalidTimestamp());
+        require(
+            order.start <= block.timestamp && order.end >= block.timestamp,
+            InvalidTimestamp()
+        );
 
         // Whitelisted currency
         require(order.currency == WETH, CurrencyNotWhitelisted());

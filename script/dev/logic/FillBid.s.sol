@@ -35,13 +35,13 @@ abstract contract FillBid {
         uint256 seed
     ) internal view returns (OrderModel.Fill memory) {
         uint256 tokenId = seed % DNFT(collection).totalSupply();
-        address holder = DNFT(collection).ownerOf(tokenId);
+        address nftHolder = DNFT(collection).ownerOf(tokenId);
 
-        while (holder == orderActor) {
+        while (nftHolder == orderActor) {
             tokenId++;
-            holder = DNFT(collection).ownerOf(tokenId);
+            nftHolder = DNFT(collection).ownerOf(tokenId);
         }
 
-        return OrderModel.Fill({tokenId: tokenId, actor: holder});
+        return OrderModel.Fill({tokenId: tokenId, actor: nftHolder});
     }
 }

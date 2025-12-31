@@ -57,7 +57,7 @@ dev-start: dev-fork pipeline-setup
 	@echo "🚀 Dev environment ready"
 
 dev-reset: kill-anvil dev-start
-	@echo "♻️ Dev reset complete"
+	@echo "🔄 Dev reset complete"
 
 pipeline-setup: \
 	dev-bootstrap-accounts \
@@ -92,7 +92,7 @@ dev-deploy-core:
 		$(FORGE_COMMON_FLAGS)
 
 dev-bootstrap-nfts:
-	@echo "🖼️ Bootstrapping NFTs..."
+	@echo "👾 Bootstrapping NFTs..."
 	forge script $(DEV_BOOTSTRAP)/BootstrapNFTs.s.sol \
 		$(FORGE_COMMON_FLAGS)
 

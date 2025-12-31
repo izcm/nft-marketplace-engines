@@ -1,19 +1,24 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.30;
 
+// foundry
+import {console} from "forge-std/console.sol";
+
 // core libraries
 import {OrderModel} from "orderbook/libs/OrderModel.sol";
 import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
 
-// scripts
+// scripts base
 import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 import {DevConfig} from "dev/DevConfig.s.sol";
 
+// scripts order logic
 import {OrdersJson} from "dev/logic/OrdersJson.s.sol";
 import {FillBid} from "dev/logic/FillBid.s.sol";
 
 // interfaces
 import {IERC20, SafeERC20} from "@openzeppelin/token/ERC20/utils/SafeERC20.sol";
+import {ISettlementEngine} from "periphery/interfaces/ISettlementEngine.sol";
 
 // types
 import {SignedOrder} from "dev/state/Types.sol";
@@ -26,36 +31,55 @@ contract ExecuteHistory is OrdersJson, FillBid, BaseDevScript, DevConfig {
     uint256 epoch;
 
     function run() external {
+        // read deployments.toml
+        address settlementContract = readSettlementContract();
+
         _loadParticipants();
 
         // read signed orders from .json
         SignedOrder[] memory signed = ordersFromJson(
             string.concat(ordersJsonDir(), ".4.json")
         );
-    }
 
-    function _produceFills(
-        OrderModel.Order[] memory orders
-    ) internal view returns (OrderModel.Fill[] memory fills) {
-        fills = new OrderModel.Fill[](orders.length);
+        uint256 count = signed.length;
 
-        address allowanceSpender = readAllowanceSpender();
+        OrderModel.Fill[] memory fills = new OrderModel.Fill[](count);
 
-        for (uint256 i = 0; i < orders.length; i++) {
-            OrderModel.Order memory order = orders[i];
+        for (uint256 i; i < count; i++) {
+            OrderModel.Order memory order = signed[i].order;
+            SigOps.Signature memory sig = signed[i].sig;
 
-            fills[i] = _produceFill(order);
+            OrderModel.Fill memory fill = _produceFill(order);
 
-            uint256 allowance = IERC20(order.currency).allowance(
-                fills[i].actor,
-                allowanceSpender
-            );
+            // TODO: needs to check for tokenid changes and either:
+            // 1. try catch and ignore any invalid settles
+            // 2. validate before `settle`
+            vm.startBroadcast(pkOf(fill.actor));
 
-            require(allowance > order.price, "Allowance too low");
+            _trySettle(fill, order, sig, settlementContract);
+
+            vm.stopBroadcast();
         }
     }
 
-    // TODO: seperate fillOrder** functionality to own abstract contracts
+    function _trySettle(
+        OrderModel.Fill memory fill,
+        OrderModel.Order memory order,
+        SigOps.Signature memory sig,
+        address sc
+    ) internal {
+        try ISettlementEngine(sc).settle(fill, order, sig) {
+            console.log("settle ok | tokenId:", order.tokenId);
+        } catch Error(string memory reason) {
+            // Error(string)
+            console.log("settle reverted (string):", reason);
+        } catch (bytes memory data) {
+            // custom errors
+            console.log("settle reverted (custom/low-level)");
+            console.logBytes(data);
+        }
+    }
+
     function _produceFill(
         OrderModel.Order memory order
     ) internal view returns (OrderModel.Fill memory) {
