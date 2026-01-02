@@ -43,6 +43,8 @@ contract OrderEngine is ReentrancyGuard {
     mapping(address => mapping(uint256 => bool))
         private _isUserOrderNonceInvalid;
 
+    mapping(address => mapping(uint256 => uint256)) private _userNonceBitmap;
+
     event Settlement(
         bytes32 indexed orderHash,
         address indexed collection,
@@ -138,7 +140,7 @@ contract OrderEngine is ReentrancyGuard {
         {
             uint256 feeAmount = (amount * PROTOCOL_FEE_BPS) / 10000;
 
-            // using SafeERC20 for future proofing
+            // using SafeERC20 to future proof
             IERC20(currency).safeTransferFrom(
                 from,
                 protocolFeeRecipient,

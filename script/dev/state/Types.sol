@@ -10,14 +10,12 @@ struct SignedOrder {
     SigOps.Signature sig;
 }
 
+struct ActorNonce {
+    address actor;
+    uint256 nonce;
+}
+
 struct Selection {
     address collection;
     uint256[] tokenIds;
-}
-
-enum SampleMode {
-    Ask,
-    Bid,
-    CollectionBid,
-    COUNT_
 }

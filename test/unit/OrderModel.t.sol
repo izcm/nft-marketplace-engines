@@ -13,7 +13,7 @@ contract OrderModelTest is Test {
                                 IsAsk
     //////////////////////////////////////////////////////////////*/
 
-    function test_IsAsk_ReturnsTrue_ForAsk() public {
+    function test_IsAsk_ReturnsTrue_ForAsk() public pure {
         OrderModel.Order memory order = OrderModel.Order({
             side: OrderModel.Side.Ask,
             isCollectionBid: false,
@@ -30,7 +30,7 @@ contract OrderModelTest is Test {
         assertTrue(order.isAsk());
     }
 
-    function test_IsAsk_ReturnsFalse_ForBid() public {
+    function test_IsAsk_ReturnsFalse_ForBid() public pure {
         OrderModel.Order memory order = OrderModel.Order({
             side: OrderModel.Side.Bid,
             isCollectionBid: false,
@@ -51,7 +51,7 @@ contract OrderModelTest is Test {
                                 IsBid
     //////////////////////////////////////////////////////////////*/
 
-    function test_IsBid_ReturnsTrue_ForBid() public {
+    function test_IsBid_ReturnsTrue_ForBid() public pure {
         OrderModel.Order memory order = OrderModel.Order({
             side: OrderModel.Side.Bid,
             isCollectionBid: false,
@@ -68,7 +68,7 @@ contract OrderModelTest is Test {
         assertTrue(order.isBid());
     }
 
-    function test_IsBid_ReturnsFalse_ForAsk() public {
+    function test_IsBid_ReturnsFalse_ForAsk() public pure {
         OrderModel.Order memory order = OrderModel.Order({
             side: OrderModel.Side.Ask,
             isCollectionBid: false,

@@ -42,32 +42,12 @@ abstract contract OrderSampling is Script {
         }
     }
 
-    function orderSalt(
-        OrderModel.Side side,
-        bool isCollectionBid,
-        address collection,
-        uint256 mixIn
-    ) internal pure returns (uint256) {
-        return
-            uint256(
-                keccak256(abi.encode(collection, side, isCollectionBid, mixIn))
-            );
-    }
-
     function orderPrice(
         address collection,
         uint256 tokenId,
         uint256 seed
     ) internal pure returns (uint256) {
         return MarketSim.priceOf(collection, tokenId, seed);
-    }
-
-    // eg. use orderSalt() to compute seed
-    function orderNonce(
-        uint256 seed,
-        uint256 mixIn
-    ) internal pure returns (uint256) {
-        return uint256(keccak256(abi.encode(seed, mixIn)));
     }
 
     function _hydrateAndSelectTokens(
@@ -77,11 +57,23 @@ abstract contract OrderSampling is Script {
         uint256 scanLimit,
         uint256 mixIn
     ) internal pure returns (uint256[] memory) {
-        uint256 seed = orderSalt(side, isCollectionBid, collection, mixIn);
+        uint256 seed = _selectionSalt(side, isCollectionBid, collection, mixIn);
         // Safe: uint8(seed) % 10 ∈ [0..5], +5 ⇒ [5..10]
         // forge-lint: disable-next-line(unsafe-typecast)
         uint8 density = (uint8(seed) % 6) + 5;
 
         return MarketSim.selectTokens(collection, scanLimit, density, seed);
+    }
+
+    function _selectionSalt(
+        OrderModel.Side side,
+        bool isCollectionBid,
+        address collection,
+        uint256 mixIn
+    ) internal pure returns (uint256) {
+        return
+            uint256(
+                keccak256(abi.encode(collection, side, isCollectionBid, mixIn))
+            );
     }
 }

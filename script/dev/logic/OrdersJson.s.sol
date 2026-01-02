@@ -8,12 +8,18 @@ import {OrderModel} from "orderbook/libs/OrderModel.sol";
 import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
 
 // types
-import {SignedOrder} from "dev/state/Types.sol";
+import {SignedOrder, ActorNonce} from "dev/state/Types.sol";
 
 abstract contract OrdersJson is Script {
-    struct PersistedOrders {
+    // === JSON SPECIFIC SCHEMAS ===
+
+    struct PersistedOrdersJson {
         uint256 chainId;
-        SignedOrdersJson[] signedOrders;
+        SignedOrdersJson[] signed;
+    }
+
+    struct PersistedNoncesJson {
+        ActorNonce[] nonces;
     }
 
     struct SignedOrdersJson {
@@ -25,79 +31,98 @@ abstract contract OrdersJson is Script {
         uint256 nonce;
         uint256 price;
         OrderModel.Side side;
-        SignatureJson signature;
+        SignatureJson sig;
         uint64 start;
         uint256 tokenId;
     }
 
-    // `remove` comes from serializing signature terminal value
+    // struct has to match json alphabetical order => cannot use SigOps.Signature
     struct SignatureJson {
-        string _terminal;
         bytes32 r;
         bytes32 s;
         uint8 v;
     }
 
-    function ordersJsonDir() internal view returns (string memory) {
-        return
-            string.concat(
-                "./data/",
-                vm.toString(block.chainid),
-                "/orders-raw/"
-            );
+    function epochOrdersPath(
+        uint256 epoch
+    ) internal view returns (string memory) {
+        string memory dir = string.concat(_stateDir(), _epochDir(epoch));
+        string memory out = "/orders.json";
+
+        return string.concat(dir, out);
     }
 
+    function epochNoncesPath(
+        uint256 epoch
+    ) internal view returns (string memory) {
+        string memory dir = string.concat(_stateDir(), _epochDir(epoch));
+        string memory out = "/nonces.json";
+
+        return string.concat(dir, out);
+    }
+
+    // === TO JSON ===
+
     function ordersToJson(
-        SignedOrder[] memory signedOrders,
+        SignedOrder[] memory signed,
         string memory path
     ) internal {
-        uint256 signedOrderCount = signedOrders.length;
-        string memory root = "root";
+        string memory root = "orders";
 
         // metadata
         vm.serializeUint(root, "chainId", block.chainid);
 
-        // signedOrders array
-        string[] memory entries = new string[](signedOrderCount);
+        string[] memory entries = new string[](signed.length);
 
-        for (uint256 i = 0; i < signedOrderCount; i++) {
-            SignedOrder memory signed = signedOrders[i];
+        for (uint256 i = 0; i < signed.length; i++) {
+            SignedOrder memory item = signed[i];
 
-            string memory oKey = string.concat(
-                "order_",
-                vm.toString(uint256(1))
-            );
+            string memory oKey = string.concat("order_", vm.toString(i));
 
-            entries[i] = _serializeOrdersJson(signed.order, oKey);
+            entries[i] = _serializeOrdersJson(item.order, oKey);
 
             // ---- signature ----
-            SigOps.Signature memory sig = signed.sig;
+            SigOps.Signature memory sig = item.sig;
 
-            string memory sKey = string.concat(oKey, "sig");
+            string memory sKey = string.concat(oKey, "_sig");
 
             vm.serializeUint(sKey, "v", sig.v);
             vm.serializeBytes32(sKey, "r", sig.r);
-            vm.serializeBytes32(sKey, "s", sig.s);
+            string memory sigOut = vm.serializeBytes32(sKey, "s", sig.s);
 
-            // Foundry serialize API requires a terminal value?
-            string memory sigOut = vm.serializeString(sKey, "_terminal", "0");
+            string memory out = vm.serializeString(oKey, "sig", sigOut);
 
-            string memory output = vm.serializeString(
-                oKey,
-                "signature",
-                sigOut
-            );
-            entries[i] = output;
+            entries[i] = out;
         }
 
-        string memory finalJson = vm.serializeString(
-            root,
-            "signedOrders",
-            entries
-        );
+        string memory finalJson = vm.serializeString(root, "signed", entries);
 
         vm.writeJson(finalJson, path);
     }
+
+    // Enables BuildHistory.s.sol keeping track of nonces between epochs
+    function noncesToJson(
+        ActorNonce[] memory nonces,
+        string memory path
+    ) internal {
+        string memory root = "nonces";
+
+        string[] memory entries = new string[](nonces.length);
+
+        for (uint256 i = 0; i < nonces.length; i++) {
+            string memory k = string.concat("nonce_", vm.toString(i));
+
+            vm.serializeAddress(k, "actor", nonces[i].actor);
+            string memory out = vm.serializeUint(k, "nonce", nonces[i].nonce);
+
+            entries[i] = out;
+        }
+
+        string memory finalJson = vm.serializeString(root, "nonces", entries);
+        vm.writeJson(finalJson, path);
+    }
+
+    // == FROM JSON ===
 
     function ordersFromJson(
         string memory path
@@ -105,20 +130,57 @@ abstract contract OrdersJson is Script {
         string memory json = vm.readFile(path);
         bytes memory data = vm.parseJson(json);
 
-        PersistedOrders memory parsed = abi.decode(data, (PersistedOrders));
-        uint256 count = parsed.signedOrders.length;
+        PersistedOrdersJson memory parsed = abi.decode(
+            data,
+            (PersistedOrdersJson)
+        );
+        uint256 count = parsed.signed.length;
 
         signed = new SignedOrder[](count);
 
         for (uint256 i = 0; i < count; i++) {
-            signed[i] = _fromSignedOrdersJson(parsed.signedOrders[i]);
+            signed[i] = _fromSignedOrdersJson(parsed.signed[i]);
         }
     }
+
+    function noncesFromJson(
+        string memory path
+    ) internal view returns (ActorNonce[] memory nonces) {
+        string memory json = vm.readFile(path);
+        bytes memory data = vm.parseJson(json);
+
+        PersistedNoncesJson memory parsed = abi.decode(
+            data,
+            (PersistedNoncesJson)
+        );
+
+        uint256 count = parsed.nonces.length;
+
+        nonces = new ActorNonce[](count);
+
+        for (uint256 i = 0; i < count; i++) {
+            nonces[i] = parsed.nonces[i];
+        }
+    }
+
+    // === PRIVATE FUNCTIONS ===
+
+    // --- path builders ---
+
+    function _stateDir() private view returns (string memory) {
+        return string.concat("./data/", vm.toString(block.chainid), "/state/");
+    }
+
+    function _epochDir(uint256 epoch) private pure returns (string memory) {
+        return string.concat("epoch_", vm.toString(epoch));
+    }
+
+    // --- serializers ---
 
     function _serializeOrdersJson(
         OrderModel.Order memory o,
         string memory objKey
-    ) internal returns (string memory) {
+    ) private returns (string memory) {
         string memory key = objKey;
 
         // ---- order ----
@@ -153,9 +215,9 @@ abstract contract OrdersJson is Script {
         });
 
         signed.sig = SigOps.Signature({
-            v: jso.signature.v,
-            r: jso.signature.r,
-            s: jso.signature.s
+            v: jso.sig.v,
+            r: jso.sig.r,
+            s: jso.sig.s
         });
     }
 }

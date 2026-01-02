@@ -44,7 +44,9 @@ contract Approve is BaseDevScript, DevConfig {
 
                 address owner = addrOf(participantPks[j]);
                 console.log(
-                    "%s HAS APPROVED DMRKT FOR ALL: ", owner, collectionToken.isApprovedForAll(owner, nftTransferAuth)
+                    "%s HAS APPROVED DMRKT FOR ALL: ",
+                    owner,
+                    collectionToken.isApprovedForAll(owner, nftTransferAuth)
                 );
             }
         }
@@ -66,7 +68,11 @@ contract Approve is BaseDevScript, DevConfig {
             vm.stopBroadcast();
 
             address owner = addrOf(participantPks[i]);
-            console.log("%s HAS APPROVED ALLOWANCE FOR SPENDER: ", owner, wethToken.allowance(owner, allowanceSpender));
+            console.log(
+                "%s HAS APPROVED ALLOWANCE FOR SPENDER: ",
+                owner,
+                wethToken.allowance(owner, allowanceSpender)
+            );
         }
     }
 }

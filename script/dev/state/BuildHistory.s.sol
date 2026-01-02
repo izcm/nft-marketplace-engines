@@ -17,7 +17,7 @@ import {OrdersJson} from "dev/logic/OrdersJson.s.sol";
 import {SettlementSigner} from "dev/logic/SettlementSigner.s.sol";
 
 // types
-import {SignedOrder, Selection} from "dev/state/Types.sol";
+import {SignedOrder, Selection, ActorNonce} from "dev/state/Types.sol";
 
 // interfaces
 import {ISettlementEngine} from "periphery/interfaces/ISettlementEngine.sol";
@@ -25,6 +25,8 @@ import {IERC721} from "periphery/interfaces/DNFT.sol";
 
 // logging
 import {console} from "forge-std/console.sol";
+
+// TODO: change to incremental orderNonce and write in/out to file between epochs
 
 contract BuildHistory is
     OrderSampling,
@@ -36,6 +38,8 @@ contract BuildHistory is
     // ctx
     uint256 private epoch;
     uint256 private epochSize;
+
+    mapping(address => uint256) private actorNonceIdx;
 
     // === ENTRYPOINTS ===
 
@@ -50,10 +54,20 @@ contract BuildHistory is
 
         _loadParticipants();
 
+        // track userNonces if epoch != 0
+        if (_epoch != 0) {
+            // read prev epoch userNonces
+            ActorNonce[] memory startNonces = noncesFromJson(
+                epochNoncesPath(_epoch - 1)
+            );
+            _importNonces(startNonces);
+        }
+
         epoch = _epoch;
         epochSize = _epochSize;
 
         logSection("BUILD ORDERS");
+        console.log("Block timestamp: %s", block.timestamp);
         console.log("Epoch: %s", epoch);
         logSeparator();
 
@@ -84,18 +98,19 @@ contract BuildHistory is
 
         // === ORDER BY NONCE ===
 
-        _sortByNonce(signed);
+        _sortByEndDate(signed); // TODO: change this when nonces become incremental
 
         console.log("Sorting by nonce completed");
 
         // === EXPORT AS JSON ===
-        string memory fileName = string.concat(vm.toString(epoch), ".json");
-        ordersToJson(signed, string.concat(ordersJsonDir(), fileName));
+
+        ordersToJson(signed, epochOrdersPath(_epoch));
+        noncesToJson(_exportNonces(), epochNoncesPath(_epoch));
 
         logSeparator();
         console.log(
             "Epoch %s ready with %s signed orders!",
-            epoch,
+            _epoch,
             signed.length
         );
         logSeparator();
@@ -104,7 +119,7 @@ contract BuildHistory is
     function _buildOrders(
         address weth,
         address[] memory collections
-    ) internal view returns (OrderModel.Order[] memory orders) {
+    ) internal returns (OrderModel.Order[] memory orders) {
         Selection[] memory selectionAsks = collect(
             OrderModel.Side.Ask,
             false,
@@ -173,12 +188,11 @@ contract BuildHistory is
         bool isCollectionBid,
         Selection[] memory selections,
         address currency
-    ) internal view returns (uint256) {
+    ) internal returns (uint256) {
         for (uint256 i; i < selections.length; i++) {
             Selection memory sel = selections[i];
             for (uint256 j; j < sel.tokenIds.length; j++) {
-                uint256 orderIdx = i + j;
-
+                uint256 orderIdx = idx;
                 address collection = sel.collection;
                 uint256 tokenId = !isCollectionBid ? sel.tokenIds[j] : 0;
 
@@ -202,13 +216,8 @@ contract BuildHistory is
         uint256 tokenId,
         address currency,
         uint256 orderIdx
-    ) internal view returns (OrderModel.Order memory order) {
-        uint256 seed = orderSalt(
-            side,
-            isCollectionBid,
-            collection,
-            (epoch + orderIdx)
-        );
+    ) internal returns (OrderModel.Order memory order) {
+        uint256 seed = (orderIdx << 160) | epoch;
 
         address actor = _resolveActor(
             side,
@@ -228,8 +237,10 @@ contract BuildHistory is
             actor,
             _resolveStartDate(seed),
             _resolveEndDate(seed),
-            orderNonce(seed, orderIdx)
+            actorNonceIdx[actor]++
         );
+
+        OrderBuilder.validate(order);
     }
 
     function _resolveStartDate(uint256 seed) internal view returns (uint64) {
@@ -259,15 +270,15 @@ contract BuildHistory is
         }
     }
 
-    function _sortByNonce(SignedOrder[] memory arr) internal pure {
+    function _sortByEndDate(SignedOrder[] memory arr) internal pure {
         uint256 n = arr.length;
 
         for (uint256 i = 1; i < n; i++) {
             SignedOrder memory key = arr[i];
-            uint256 keyNonce = key.order.nonce;
+            uint256 keyEnd = key.order.end;
 
             uint256 j = i;
-            while (j > 0 && arr[j - 1].order.nonce > keyNonce) {
+            while (j > 0 && arr[j - 1].order.end > keyEnd) {
                 arr[j] = arr[j - 1];
                 j--;
             }
@@ -276,11 +287,35 @@ contract BuildHistory is
         }
     }
 
+    function _exportNonces()
+        internal
+        view
+        returns (ActorNonce[] memory nonces)
+    {
+        address[] memory ps = participants();
+
+        nonces = new ActorNonce[](ps.length);
+
+        for (uint256 i = 0; i < ps.length; i++) {
+            address a = ps[i];
+            nonces[i] = ActorNonce({actor: a, nonce: actorNonceIdx[a]});
+        }
+    }
+
+    function _importNonces(ActorNonce[] memory nonces) internal {
+        for (uint256 i = 0; i < nonces.length; i++) {
+            address actor = nonces[i].actor;
+            uint256 nonce = nonces[i].nonce;
+
+            actorNonceIdx[actor] = nonce;
+        }
+    }
+
     // === PRIVATE FUNCTIONS ===
 
     function _resolveTimeOffset(uint256 seed) private view returns (uint64) {
         // forge-lint: disable-next-line(unsafe-typecast)
-        return uint64((seed % epochSize) + epochSize); // safe because date
+        return uint64((seed % epochSize) + 60 days); // safe because date
     }
     function _epochAnchor() private view returns (uint64) {
         // forge-lint: disable-next-line(unsafe-typecast)

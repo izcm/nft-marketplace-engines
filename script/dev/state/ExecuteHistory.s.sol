@@ -39,6 +39,11 @@ contract ExecuteHistory is
 
         _jumpToEpoch(_epoch, _epochSize);
 
+        logSection("EXECUTING ORDERS");
+        console.log("Block timestamp: %s", block.timestamp);
+        console.log("Epoch: %s", _epoch);
+        logSeparator();
+
         // === LOAD CONFIG & SETUP ===
 
         address orderSettler = readSettlementContract();
@@ -47,12 +52,7 @@ contract ExecuteHistory is
 
         // === PARSE JSON ORDERS ===
 
-        SignedOrder[] memory signed = ordersFromJson(
-            string.concat(
-                ordersJsonDir(),
-                string.concat(vm.toString(_epoch), ".json")
-            )
-        );
+        SignedOrder[] memory signed = ordersFromJson(epochOrdersPath(_epoch));
 
         uint256 count = signed.length;
 
@@ -114,12 +114,13 @@ contract ExecuteHistory is
     }
 
     function _produceFill(
-        OrderModel.Order memory order
+        OrderModel.Order memory o
     ) internal view returns (OrderModel.Fill memory) {
-        if (order.isAsk()) {
-            return _fillAsk(order.actor, order.nonce);
-        } else if (order.isBid()) {
-            return fillBid(order);
+        if (o.isAsk()) {
+            return
+                _fillAsk(o.actor, uint256((uint160(o.actor) << 160) | o.nonce));
+        } else if (o.isBid()) {
+            return fillBid(o);
         } else {
             revert("Invalid Order Side");
         }

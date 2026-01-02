@@ -34,7 +34,7 @@ abstract contract FillBid {
         address orderActor,
         uint256 seed
     ) internal view returns (OrderModel.Fill memory) {
-        uint256 tokenId = seed % DNFT(collection).totalSupply();
+        uint256 tokenId = seed % DNFT(collection).totalSupply(); // TODO: if nonces become sequential => change this
         address nftHolder = DNFT(collection).ownerOf(tokenId);
 
         while (nftHolder == orderActor) {
