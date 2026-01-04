@@ -27,7 +27,9 @@ DEPLOY_ORDER_ENGINE := $(SCRIPT_ROOT)/DeployOrderEngine.s.sol
 WETH    := 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
 
 # args
-DAYS_AGO=28 # find eth blocknumber this number of days ago => spin up dev fork at that block
+EPOCH_COUNT = 4
+EPOCH_SIZE = 604800 # seconds (7 days)
+SECONDS_AGO = $(shell expr $(EPOCH_COUNT) \* $(EPOCH_SIZE))
 
 # ───────────────────────────────────────────────
 #   LOGGING / VERBOSITY
@@ -83,7 +85,7 @@ dev-fork:dev-prepare
 
 dev-prepare: 
 	@echo "🔢 Finding block number and timestamps..."
-	@node ./$(DEV_ROOT)/prepare-fork.js $(DAYS_AGO)
+	@node ./$(DEV_ROOT)/prepare-fork.js $(SECONDS_AGO)
 
 # ───────────────────────────────────────────────
 #   DEV — SETUP / GENESIS

@@ -14,8 +14,8 @@ const tomlFile = "./deployments.toml";
 
 // === args ===
 
-const daysAgo = Number(process.argv[2]);
-if (!daysAgo) throw new Error("🚨 Pass days ago as param!");
+const secondsAgo = Number(process.argv[2]);
+if (!secondsAgo) throw new Error("🚨 Pass seconds ago as param!");
 
 // arg not set => now.timestamp is written to .toml
 const historyEndTsArg = process.argv[3] !== undefined ? process.argv[3] : null;
@@ -111,7 +111,7 @@ const writeTimestampsToml = async ({ path, historyStartTs, historyEndTs }) => {
 
 // === run ===
 
-const blocknumber = await findBlockBefore(daysAgo * DAY);
+const blocknumber = await findBlockBefore(secondsAgo);
 const block = await blockMeta(blocknumber);
 
 const historyStartTs = block.timestamp;
@@ -124,7 +124,7 @@ await writeTimestampsToml({ path: tomlFile, historyStartTs, historyEndTs });
 console.log("\n" + "=".repeat(60));
 console.log("✔ Complete!");
 console.log("=".repeat(60));
-console.log(`\nFork prepared at block: ${blocknumber.number}`);
+console.log(`\nFork prepared at block: ${block.number}`);
 console.log(`\n⏰ Timestamps:`);
 console.log(`  start: ${historyStartTs}`);
 console.log(`  end:   ${historyEndTs}`);

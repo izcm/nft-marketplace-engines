@@ -1,7 +1,6 @@
 #!/bin/bash
 
-EPOCH_START=$1
-EPOCH_END=$2
+EPOCH_COUNT=$1
 EPOCH_SIZE=$3
 
 if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
@@ -11,7 +10,7 @@ fi
 
 SLEEP_SECONDS=2
 
-for epoch in $(seq $EPOCH_START $EPOCH_END);
+for epoch in $(seq $EPOCH_COUNT);
 do
     echo "🧱 Building history for epoch $epoch"
 
