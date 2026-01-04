@@ -117,7 +117,7 @@ dev-approve:
 
 dev-history: 
 	@echo "📊 Building historical orders..."
-	@./$(DEV_STATE)/start-history.sh 0 4 604800
+	@./$(DEV_STATE)/start-history.sh $(EPOCH_COUNT) $(EPOCH_SIZE)
 
 dev-execute-history:
 	@echo "📊 Executing historical orders..."

@@ -18,7 +18,7 @@ const secondsAgo = Number(process.argv[2]);
 if (!secondsAgo) throw new Error("🚨 Pass seconds ago as param!");
 
 // arg not set => now.timestamp is written to .toml
-const historyEndTsArg = process.argv[3] !== undefined ? process.argv[3] : null;
+const pipelineEndTsArg = process.argv[3] !== undefined ? process.argv[3] : null;
 
 // === semantic helpers ===
 
@@ -82,7 +82,12 @@ const findBlockBefore = async (secondsAgo) => {
 
 // === io ===
 
-const writeTimestampsToml = async ({ path, historyStartTs, historyEndTs }) => {
+const writePipelineWindowToml = async ({
+  path,
+  pipelineStartTs,
+  pipelineEndTs,
+  forkBlockNumber,
+}) => {
   let toml = await fs.readFile(path, "utf8");
 
   // regex: grab the [1337.uint] block only
@@ -97,12 +102,14 @@ const writeTimestampsToml = async ({ path, historyStartTs, historyEndTs }) => {
   let section = match[0];
 
   section = section
-    .replace(/history_start_ts\s*=.*\n?/, "")
-    .replace(/history_end_ts\s*=.*\n?/, "");
+    .replace(/pipeline_start_ts\s*=.*\n?/, "")
+    .replace(/pipeline_end_ts\s*=.*\n?/, "")
+    .replace(/fork_block_number\s*=.*\n?/, "");
 
   section +=
-    `history_start_ts = ${historyStartTs}\n` +
-    `history_end_ts = ${historyEndTs}\n`;
+    `pipeline_start_ts = ${pipelineStartTs}\n` +
+    `pipeline_end_ts = ${pipelineEndTs}\n` +
+    `fork_block_number = ${forkBlockNumber}\n`;
 
   toml = toml.replace(sectionRegex, section);
 
@@ -114,10 +121,15 @@ const writeTimestampsToml = async ({ path, historyStartTs, historyEndTs }) => {
 const blocknumber = await findBlockBefore(secondsAgo);
 const block = await blockMeta(blocknumber);
 
-const historyStartTs = block.timestamp;
-const historyEndTs = historyEndTsArg ?? Math.floor(Date.now() / 1000);
+const pipelineStartTs = block.timestamp;
+const pipelineEndTs = pipelineEndTsArg ?? Math.floor(Date.now() / 1000);
 
-await writeTimestampsToml({ path: tomlFile, historyStartTs, historyEndTs });
+await writePipelineWindowToml({
+  path: tomlFile,
+  pipelineStartTs,
+  pipelineEndTs,
+  forkBlockNumber: block.number,
+});
 
 // === logs ===
 
@@ -126,6 +138,6 @@ console.log("✔ Complete!");
 console.log("=".repeat(60));
 console.log(`\nFork prepared at block: ${block.number}`);
 console.log(`\n⏰ Timestamps:`);
-console.log(`  start: ${historyStartTs}`);
-console.log(`  end:   ${historyEndTs}`);
+console.log(`  start: ${pipelineStartTs}`);
+console.log(`  end:   ${pipelineEndTs}`);
 console.log("\n" + "=".repeat(60) + "\n");

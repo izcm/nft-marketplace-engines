@@ -1,9 +1,9 @@
 #!/bin/bash
 
 EPOCH_COUNT=$1
-EPOCH_SIZE=$3
+EPOCH_SIZE=$2
 
-if [ -z "$1" ] || [ -z "$2" ] || [ -z "$3" ]; then
+if [ -z "$1" ] || [ -z "$2" ]; then
     echo "Missing Arguments - Usage: execute-epoch.sh EPOCH_START EPOCH_END EPOCH_SIZE"
     exit 1
 fi
@@ -40,4 +40,3 @@ do
 done
 
 echo "✔ All epochs completed!"
-

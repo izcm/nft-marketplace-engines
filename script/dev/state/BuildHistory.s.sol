@@ -26,7 +26,8 @@ import {IERC721} from "periphery/interfaces/DNFT.sol";
 // logging
 import {console} from "forge-std/console.sol";
 
-// TODO: change to incremental orderNonce and write in/out to file between epochs
+// TODO: freexe timestamps in bootstrap scripts
+// warp time properly
 
 contract BuildHistory is
     OrderSampling,
@@ -45,7 +46,6 @@ contract BuildHistory is
 
     function run(uint256 _epoch, uint256 _epochSize) external {
         // === LOAD CONFIG & SETUP ===
-
         address settlementContract = readSettlementContract();
         address weth = readWeth();
 
@@ -315,11 +315,11 @@ contract BuildHistory is
 
     function _resolveTimeOffset(uint256 seed) private view returns (uint64) {
         // forge-lint: disable-next-line(unsafe-typecast)
-        return uint64((seed % epochSize) + 60 days); // safe because date
+        return uint64((seed % epochSize) + epochSize); // safe because date
     }
     function _epochAnchor() private view returns (uint64) {
         // forge-lint: disable-next-line(unsafe-typecast)
-        return uint64(block.timestamp + (epoch * epochSize)); // safe because date
+        return uint64(readStartTs() + (epoch * epochSize)); // safe because date
     }
 
     function _resolveDate(
