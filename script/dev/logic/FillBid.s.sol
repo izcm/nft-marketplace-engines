@@ -9,11 +9,17 @@ import {DNFT} from "periphery/interfaces/DNFT.sol";
 
 abstract contract FillBid {
     function fillBid(
-        OrderModel.Order memory bid
-        // uint256[] memory excludedCb
+        OrderModel.Order memory bid,
+        uint256[] memory excludedCb
     ) internal view returns (OrderModel.Fill memory) {
         if (bid.isCollectionBid) {
-            return _fillCollectionBid(bid.collection, bid.actor, bid.nonce);
+            return
+                _fillCollectionBid(
+                    bid.collection,
+                    bid.actor,
+                    bid.nonce,
+                    excludedCb
+                );
         } else {
             return _fillRegularBid(bid.collection, bid.tokenId);
         }
@@ -33,16 +39,27 @@ abstract contract FillBid {
     function _fillCollectionBid(
         address collection,
         address orderActor,
-        uint256 seed
+        uint256 seed,
+        uint256[] memory excluded
     ) internal view returns (OrderModel.Fill memory) {
-        uint256 tokenId = seed % DNFT(collection).totalSupply(); // TODO: if nonces become sequential => change this
+        uint256 tokenId = seed % DNFT(collection).totalSupply();
         address nftHolder = DNFT(collection).ownerOf(tokenId);
 
-        while (nftHolder == orderActor) {
+        while (nftHolder == orderActor || _isExcluded(tokenId, excluded)) {
             tokenId++;
             nftHolder = DNFT(collection).ownerOf(tokenId);
         }
 
         return OrderModel.Fill({tokenId: tokenId, actor: nftHolder});
+    }
+
+    function _isExcluded(
+        uint256 tokenId,
+        uint256[] memory excluded
+    ) private pure returns (bool) {
+        for (uint256 i = 0; i < excluded.length; i++) {
+            if (tokenId == excluded[i]) return true;
+        }
+        return false;
     }
 }

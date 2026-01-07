@@ -9,6 +9,9 @@ export
 #   ROOTS
 # ───────────────────────────────────────────────
 
+PROJECT_ROOT := $(shell pwd)
+export PROJECT_ROOT
+
 SCRIPT_ROOT := script
 DEV_ROOT    := $(SCRIPT_ROOT)/dev
 
@@ -118,11 +121,6 @@ dev-approve:
 dev-history: 
 	@echo "📊 Building historical orders..."
 	@./$(DEV_STATE)/start-history.sh $(EPOCH_COUNT) $(EPOCH_SIZE)
-
-dev-execute-history:
-	@echo "📊 Executing historical orders..."
-	forge script $(DEV_STATE)/ExecuteHistory.s.sol \
-		$(FORGE_COMMON_FLAGS)
 
 # ───────────────────────────────────────────────
 #   RESET / PROCESS CONTROL

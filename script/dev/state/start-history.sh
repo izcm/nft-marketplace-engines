@@ -10,6 +10,8 @@ fi
 
 SLEEP_SECONDS=2
 
+STATE_DIR="$PROJECT_ROOT/data/1337/state"
+
 for ((epoch=0; epoch<EPOCH_COUNT; epoch++));
 do
     echo "🧱 Building history for epoch $epoch"
@@ -24,30 +26,37 @@ do
 
     sleep $SLEEP_SECONDS
 
-    cast rpc evm_increaseTime $EPOCH_SIZE
-    cast rpc evm_mine
-
-    echo "🎬 Execute history for epoch $epoch"
-
-    # TODO: just have a super minimal executeorder.s.sol script 
-    # execute per order and forward betweem
-    # ARGS: EPOCH EPOCH_SIZE AND EXCLUDE_CB
-    # pass the name of some file containing the excludeFromCb tokenIds for order
-    # (the array of tokenIds to avoid for collectionBids (sold later in pipeline)
-    # can u pass a tokenId array from bash ..? (or must it be file path and read l8r?)
-
-    #./$DEV_STATE/execute-epoch.sh $epoch $EPOCH_SIZE
+    #cast rpc evm_increaseTime $EPOCH_SIZE
+    #cast rpc evm_mine
     
-    #forge script $DEV_STATE/ExecuteHistory.s.sol \
-    #    --rpc-url $RPC_URL \
-    #    --broadcast \
-    #    --sender $SENDER \
-    #    --private-key $PRIVATE_KEY \
-    #    --sig "run(uint256,uint256)" \
-    #    $epoch $EPOCH_SIZE
+    order_count=$(cat $STATE_DIR/epoch_$epoch/order-count.txt)
+    
+    echo "🎬 Executing $order_count orders in epoch $epoch..."
 
+    SUCCESS=0
+    FAIL=0
 
-    # sleep $SLEEP_SECONDS
+    for((i=0; i < order_count; i++)); do
+        if forge script $DEV_STATE/ExecuteOrder.s.sol \
+            --rpc-url $RPC_URL \
+            --broadcast \
+            --sender $SENDER \
+            --private-key $PRIVATE_KEY \
+            --sig "run(uint256,uint256)" \
+            --silent \
+            $epoch $i
+        then 
+            ((SUCCESS++))
+        else
+            echo "Error executing order $i"
+            ((FAIL++))
+        fi
+    done
+    echo "📊 Epoch $epoch summary:"
+    echo "   ✅ Executed: $SUCCESS"
+    echo "   ❌ Reverted: $FAIL"
+
+    sleep $SLEEP_SECONDS
 done
 
 echo "✔ All epochs completed!"

@@ -96,9 +96,9 @@ contract BuildHistory is
 
         // === ORDER BY NONCE ===
 
-        _sortByEndDate(signed);
+        console.log("Sorting orders by 'end' timestamp...");
 
-        console.log("Sorting by nonce completed");
+        _sortByEndDate(signed);
 
         // === EXPORT AS JSON ===
 

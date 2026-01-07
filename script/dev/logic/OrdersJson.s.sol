@@ -8,12 +8,7 @@ import {OrderModel} from "orderbook/libs/OrderModel.sol";
 import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
 
 // types
-import {
-    SignedOrder,
-    ActorNonce,
-    Selection,
-    EpochMeta
-} from "dev/state/Types.sol";
+import {SignedOrder, ActorNonce, Selection} from "dev/state/Types.sol";
 
 abstract contract OrdersJson is Script {
     // === JSON SPECIFIC SCHEMAS ===
@@ -98,8 +93,8 @@ abstract contract OrdersJson is Script {
     }
 
     function epochOrderPath(
-        uint256 idx,
-        uint256 epoch
+        uint256 epoch,
+        uint256 idx
     ) internal view returns (Path memory path) {
         path.dir = _epochOrdersDir(epoch);
         path.filename = string.concat("order_", vm.toString(idx), ".json");
@@ -113,8 +108,8 @@ abstract contract OrdersJson is Script {
     }
 
     function epochSelectionPath(
-        address collection,
-        uint256 epoch
+        uint256 epoch,
+        address collection
     ) internal view returns (Path memory path) {
         path.dir = _epochSelectionsDir(epoch);
         path.filename = string.concat(vm.toString(collection), ".json");
@@ -132,12 +127,12 @@ abstract contract OrdersJson is Script {
         uint256 idx,
         uint256 epoch
     ) internal {
-        Path memory p = epochOrderPath(idx, epoch);
+        Path memory p = epochOrderPath(epoch, idx);
         orderToJson(signed, p.dir, p.filename, idx);
     }
 
     function selectionToJson(Selection memory sel, uint256 epoch) internal {
-        Path memory p = epochSelectionPath(sel.collection, epoch);
+        Path memory p = epochSelectionPath(epoch, sel.collection);
         selectionToJson(sel, p.dir, p.filename);
     }
 
@@ -150,18 +145,19 @@ abstract contract OrdersJson is Script {
         return noncesFromJson(string.concat(p.dir, p.filename));
     }
 
-    function ordersFromJson(
-        uint256 epoch
-    ) internal view returns (SignedOrder[] memory) {
-        Path memory p = epochOrdersPath(epoch);
-        return ordersFromJson(string.concat(p.dir, p.filename));
+    function orderFromJson(
+        uint256 epoch,
+        uint256 idx
+    ) internal view returns (SignedOrder memory) {
+        Path memory p = epochOrderPath(epoch, idx);
+        return orderFromJson(string.concat(p.dir, p.filename));
     }
 
     function selectionFromJson(
-        address collection,
-        uint256 epoch
+        uint256 epoch,
+        address collection
     ) internal view returns (Selection memory) {
-        Path memory p = epochSelectionPath(collection, epoch);
+        Path memory p = epochSelectionPath(epoch, collection);
         return selectionFromJson(string.concat(p.dir, p.filename));
     }
 
@@ -190,43 +186,6 @@ abstract contract OrdersJson is Script {
         string memory finalJson = vm.serializeString(root, "sig", sigOut);
 
         vm.writeJson(finalJson, string.concat(dir, filename));
-    }
-
-    function ordersToJson(
-        SignedOrder[] memory signed,
-        string memory dir
-    ) internal {
-        string memory root = "orders";
-
-        // metadata
-        vm.serializeUint(root, "chainId", block.chainid);
-
-        string[] memory entries = new string[](signed.length);
-
-        for (uint256 i = 0; i < signed.length; i++) {
-            SignedOrder memory item = signed[i];
-
-            string memory oKey = string.concat("order_", vm.toString(i));
-
-            entries[i] = _serializeOrderJson(item.order, oKey);
-
-            // ---- signature ----
-            SigOps.Signature memory sig = item.sig;
-
-            string memory sKey = string.concat(oKey, "_sig");
-
-            vm.serializeUint(sKey, "v", sig.v);
-            vm.serializeBytes32(sKey, "r", sig.r);
-            string memory sigOut = vm.serializeBytes32(sKey, "s", sig.s);
-
-            string memory out = vm.serializeString(oKey, "sig", sigOut);
-
-            entries[i] = out;
-        }
-
-        string memory finalJson = vm.serializeString(root, "signed", entries);
-
-        vm.writeJson(finalJson, string.concat(dir, "orders.json"));
     }
 
     // Enables BuildHistory.s.sol keeping track of nonces between epochs

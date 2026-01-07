@@ -31,10 +31,10 @@ abstract contract SettlementValidation {
         } else {
             if (o.isCollectionBid) {
                 // order is collection bid => fill.actor must be owner of fill.tokenId
-                return IERC721(o.collection).ownerOf(o.tokenId) == f.actor;
+                return IERC721(o.collection).ownerOf(f.tokenId) == f.actor;
             } else {
                 // order is regular bid => fill.actor must be owner of order.tokenId
-                return IERC721(o.collection).ownerOf(f.tokenId) == f.actor;
+                return IERC721(o.collection).ownerOf(o.tokenId) == f.actor;
             }
         }
     }

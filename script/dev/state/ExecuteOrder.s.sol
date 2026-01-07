@@ -35,73 +35,68 @@ contract ExecuteHistory is
     using SafeERC20 for IERC20;
     using OrderModel for OrderModel.Order;
 
-    function run(uint256 _epoch, uint256 _epochSize) external {
+    uint256[] excludedFromCb;
+
+    function run(uint256 epoch, uint256 idx) external {
         // === LOAD CONFIG & SETUP ===
 
         address orderSettler = readSettlementContract();
 
         _loadParticipants();
 
-        logSection("EXECUTING ORDERS");
-        console.log("Block timestamp: %s", block.timestamp);
-        console.log("Epoch: %s", _epoch);
+        logSection("EXECUTING ORDER");
+        console.log("Epoch: %s", epoch);
+        console.log("Index: %s", idx);
         logSeparator();
 
-        // === PARSE JSON ORDERS ===
+        // === PARSE JSON ===
 
-        SignedOrder[] memory signed = ordersFromJson(_epoch);
+        SignedOrder memory signed = orderFromJson(epoch, idx);
 
-        uint256 count = signed.length;
+        if (signed.order.isCollectionBid) {
+            // selection.tokenIds are excluded when producing fill for collectionBids
+            // this is because they are linked to some other order in this epoch
+            Selection memory selection = selectionFromJson(
+                epoch,
+                signed.order.collection
+            );
 
-        // === MATCH FILL AND EXECUTE ===
+            uint256[] memory exclude = selection.tokenIds;
 
-        uint256 executedCount;
-
-        uint256 invalidTimestamps;
-        uint256 invalidOwnership;
-        uint256 invalidNonce;
-
-        for (uint256 i; i < count; i++) {
-            OrderModel.Order memory order = signed[i].order;
-            SigOps.Signature memory sig = signed[i].sig;
-
-            OrderModel.Fill memory fill = _produceFill(order);
-
-            if (!validTimestamps(order)) {
-                invalidTimestamps++;
-                continue;
+            for (uint256 i = 0; i < exclude.length; i++) {
+                excludedFromCb.push(exclude[i]);
             }
-
-            if (!validNftOwnership(fill, order)) {
-                invalidOwnership++;
-                continue;
-            }
-
-            if (
-                ISettlementEngine(orderSettler).isUserOrderNonceInvalid(
-                    order.actor,
-                    order.nonce
-                )
-            ) {
-                invalidNonce++;
-                continue;
-            }
-
-            vm.startBroadcast(pkOf(fill.actor));
-            ISettlementEngine(orderSettler).settle(fill, order, sig);
-            vm.stopBroadcast();
-
-            executedCount++;
         }
 
-        console.log("=== EXECUTION SUMMARY ===");
-        console.log("Total Orders: %s", count);
-        console.log("Executed: %s", executedCount);
-        console.log("Invalid Timestamps: %s", invalidTimestamps);
-        console.log("Invalid Ownership: %s", invalidOwnership);
-        console.log("Invalid Nonce: %s", invalidNonce);
-        console.log("Total Skipped: %s", count - executedCount);
+        // === VALIDATE AND EXECUTE ===
 
+        OrderModel.Order memory order = signed.order;
+        SigOps.Signature memory sig = signed.sig;
+
+        if (!validTimestamps(order)) {
+            revert("INVALID_TIMESTAMPS");
+        }
+
+        OrderModel.Fill memory fill = _produceFill(order);
+
+        if (!validNftOwnership(fill, order)) {
+            revert("INVALID_NFT_OWNERSHIP");
+        }
+
+        if (
+            ISettlementEngine(orderSettler).isUserOrderNonceInvalid(
+                order.actor,
+                order.nonce
+            )
+        ) {
+            revert("INVALID_NONCE");
+        }
+
+        vm.startBroadcast(pkOf(fill.actor));
+        ISettlementEngine(orderSettler).settle(fill, order, sig);
+        vm.stopBroadcast();
+
+        console.log("Status: EXECUTED");
         logSeparator();
     }
 
@@ -112,7 +107,7 @@ contract ExecuteHistory is
             return
                 _fillAsk(o.actor, uint256((uint160(o.actor) << 160) | o.nonce));
         } else if (o.isBid()) {
-            return fillBid(o);
+            return fillBid(o, excludedFromCb);
         } else {
             revert("Invalid Order Side");
         }
@@ -128,9 +123,4 @@ contract ExecuteHistory is
                 actor: otherParticipant(orderActor, seed)
             });
     }
-
-    // === PRIVATE FUNCTIONS ===
-
-    // to exclude selected tokens to be sold beforehand by `_fillCollectionBid`
-    // function _importExcluded() private returns (uint256[] memory) {}
 }
