@@ -13,7 +13,7 @@ import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 import {DevConfig} from "dev/DevConfig.s.sol";
 
 import {OrderSampling} from "dev/logic/OrderSampling.s.sol";
-import {OrdersJson} from "dev/logic/OrdersJson.s.sol";
+import {EpochsJson} from "dev/logic/EpochsJson.s.sol";
 import {SettlementSigner} from "dev/logic/SettlementSigner.s.sol";
 
 // types
@@ -26,10 +26,10 @@ import {IERC721} from "periphery/interfaces/DNFT.sol";
 // logging
 import {console} from "forge-std/console.sol";
 
-contract BuildHistory is
+contract BuildEpoch is
     OrderSampling,
     SettlementSigner,
-    OrdersJson,
+    EpochsJson,
     BaseDevScript,
     DevConfig
 {

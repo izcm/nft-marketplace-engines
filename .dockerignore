@@ -1,9 +1,22 @@
+# dockerignore
+
+# build artifacts
+
 cache
 out
 broadcast
+
+# local config
+
+pipeline.toml
+
+# dev notes / docs
+
 docs
 notes
-.next
+README.md
+
+# version control
+
 .git
 .gitignore
-README.md

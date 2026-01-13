@@ -14,11 +14,8 @@ remappings = [
 
 fs_permissions = [
     { access = "read-write", path = "./data/" },
-    { access = "read-write", path = "deployments.toml" }
+    { access = "read-write", path = "pipeline.toml" }
 ]
-
-[rpc_endpoints]
-fork = "http://localhost:8545"
 
 [lint]
 exclude_lints = ["unaliased-plain-import", "mixed-case-function", "asm-keccak256", "unsafe-cheatcode"]

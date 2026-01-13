@@ -18,7 +18,7 @@ contract BootstrapAccounts is BaseDevScript, DevConfig {
         // PHASE 0: LOAD CONFIG
         // --------------------------------
 
-        // read deployments.toml
+        // read pipeline.toml
         address weth = readWeth();
 
         // read .env (for anvil choose a pre-funded default account)

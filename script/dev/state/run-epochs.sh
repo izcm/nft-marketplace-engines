@@ -5,12 +5,25 @@ GREEN="\033[0;32m"
 RESET="\033[0m"
 
 EPOCH_COUNT=$1
-EPOCH_SIZE=$2
 
-if [ -z "$1" ] || [ -z "$2" ]; then
-    echo "Missing Arguments - Usage: execute-epoch.sh EPOCH_START EPOCH_END EPOCH_SIZE"
+if [ -z "$1" ]; then
+    echo "Missing Argument - Usage: execute-epoch.sh EPOCH_COUNT"
     exit 1
 fi
+
+TOML="./pipeline.toml"
+
+START_TS=$(awk -F ' ' '$1=="pipeline_start_ts" { print $3 }' $TOML)
+END_TS=$(awk -F ' ' '$1=="pipeline_end_ts" { print $3 }' $TOML)
+
+DELTA=$(( END_TS - START_TS ))
+
+if ((DELTA < EPOCH_COUNT )); then
+    echo "epoch size would be 0 - invalid config"
+    exit 1
+fi
+
+EPOCH_SIZE=$(( DELTA / EPOCH_COUNT ))
 
 SLEEP_SECONDS=2
 
@@ -18,13 +31,13 @@ STATE_DIR="$PROJECT_ROOT/data/1337/state"
 
 for ((epoch=0; epoch<EPOCH_COUNT; epoch++));
 do
-    echo "🧱 Building history for epoch $epoch"
+    echo "🧱 Building orders for epoch $epoch"
 
-    forge script "$DEV_STATE"/BuildHistory.s.sol \
+    forge script "$DEV_STATE"/BuildEpoch.s.sol \
         --rpc-url "$RPC_URL" \
         --broadcast \
-        --sender "$SENDER" \
-        --private-key "$PRIVATE_KEY" \
+        --sender "$FUNDER" \
+        --private-key "$FUNDER_PK" \
         --sig "run(uint256,uint256)" \
         $epoch "$EPOCH_SIZE"  \
 
@@ -51,8 +64,8 @@ do
         if forge script "$DEV_STATE"/ExecuteOrder.s.sol \
             --rpc-url "$RPC_URL" \
             --broadcast \
-            --sender "$SENDER" \
-            --private-key "$PRIVATE_KEY" \
+            --sender "$FUNDER" \
+            --private-key "$FUNDER_PK" \
             --sig "run(uint256,uint256)" \
             --silent \
             $epoch $i
@@ -75,6 +88,9 @@ do
 
     sleep $SLEEP_SECONDS
 done
+
+# final block
+cast rpc evm_mine "$(date +%s)"
 
 echo "✔ All epochs completed!"
 

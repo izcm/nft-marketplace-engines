@@ -1,7 +1,0 @@
-[1337]
-endpoint_url = "http://localhost:8545"
-
-[1337.address]
-weth = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"
-
-[1337.uint]

@@ -29,10 +29,9 @@ DEPLOY_ORDER_ENGINE := $(SCRIPT_ROOT)/DeployOrderEngine.s.sol
 # chain
 WETH    := 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2
 
+# TODO: read from .toml / .env
 # args
 EPOCH_COUNT = 4
-EPOCH_SIZE = 604800 # seconds (7 days)
-SECONDS_AGO = $(shell expr $(EPOCH_COUNT) \* $(EPOCH_SIZE))
 
 # ───────────────────────────────────────────────
 #   LOGGING / VERBOSITY
@@ -59,10 +58,23 @@ FORGE_COMMON_FLAGS = \
 	$(FORGE_SILENT)
 
 # ───────────────────────────────────────────────
+#   DEV — DOCKER ENTRYPOINTS
+# ───────────────────────────────────────────────
+
+# assumes pipeline.toml contains:
+# 	1. fork-start-block 
+# 	2. pipeline end + start timestamps
+dev-start: dev-fork pipeline-setup
+	@echo "🚀 Dev environment ready"
+
+# assumes .env specifies EPOCH_COUNT
+dev-history: dev-run-epochs
+
+# ───────────────────────────────────────────────
 #   DEV — HIGH-LEVEL PIPELINES
 # ───────────────────────────────────────────────
 
-dev-start: dev-fork pipeline-setup
+dev-start-local: dev-prepare dev-fork pipeline-setup
 	@echo "🚀 Dev environment ready"
 
 dev-reset: kill-anvil dev-start
@@ -75,20 +87,18 @@ pipeline-setup: \
 	dev-approve
 	@echo "🧱 Setup pipeline complete"
 
-pipeline-state: dev-build-epochs
-	@echo "🎭 State pipelines complete"
-
 # ───────────────────────────────────────────────
 #   DEV — ENVIRONMENT BOOT
 # ───────────────────────────────────────────────
 
-dev-fork:dev-prepare
+dev-fork:
 	@echo "🧬 Starting anvil fork..."
-	@./$(DEV_ROOT)/start.sh
+	@./$(DEV_ROOT)/start-fork.sh
 
+# local just defaults to 4 weeks = 2419200
 dev-prepare: 
 	@echo "🔢 Finding block number and timestamps..."
-	@node ./$(DEV_ROOT)/prepare-fork.js $(SECONDS_AGO)
+	@node ./$(DEV_ROOT)/prepare-fork.js 2419200
 
 # ───────────────────────────────────────────────
 #   DEV — SETUP / GENESIS
@@ -118,9 +128,9 @@ dev-approve:
 #   DEV — STATE / SCENARIOS
 # ───────────────────────────────────────────────
 
-dev-history: 
+dev-run-epochs: 
 	@echo "📊 Building historical orders..."
-	@./$(DEV_STATE)/start-history.sh $(EPOCH_COUNT) $(EPOCH_SIZE)
+	@./$(DEV_STATE)/run-epochs.sh $(EPOCH_COUNT)
 
 # ───────────────────────────────────────────────
 #   RESET / PROCESS CONTROL

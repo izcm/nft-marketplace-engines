@@ -10,7 +10,7 @@ import {SignatureOps as SigOps} from "orderbook/libs/SignatureOps.sol";
 // types
 import {SignedOrder, ActorNonce, Selection} from "dev/state/Types.sol";
 
-abstract contract OrdersJson is Script {
+abstract contract EpochsJson is Script {
     // === JSON SPECIFIC SCHEMAS ===
 
     struct Path {
@@ -18,7 +18,7 @@ abstract contract OrdersJson is Script {
         string filename;
     }
 
-    struct PersistedOrdersJson {
+    struct PersistedEpochsJson {
         uint256 chainId;
         SignedOrderJson[] signed;
     }
@@ -188,7 +188,7 @@ abstract contract OrdersJson is Script {
         vm.writeJson(finalJson, string.concat(dir, filename));
     }
 
-    // Enables BuildHistory.s.sol keeping track of nonces between epochs
+    // Enables BuildEpoch.s.sol keeping track of nonces between epochs
     function noncesToJson(
         ActorNonce[] memory nonces,
         string memory dir,
@@ -242,24 +242,6 @@ abstract contract OrdersJson is Script {
         SignedOrderJson memory parsed = abi.decode(data, (SignedOrderJson));
 
         signed = _fromSignedOrderJson(parsed);
-    }
-
-    function ordersFromJson(
-        string memory path
-    ) internal view returns (SignedOrder[] memory signed) {
-        bytes memory data = vm.parseJson(vm.readFile(path));
-
-        PersistedOrdersJson memory parsed = abi.decode(
-            data,
-            (PersistedOrdersJson)
-        );
-        uint256 count = parsed.signed.length;
-
-        signed = new SignedOrder[](count);
-
-        for (uint256 i = 0; i < count; i++) {
-            signed[i] = _fromSignedOrderJson(parsed.signed[i]);
-        }
     }
 
     function noncesFromJson(

@@ -1,7 +1,7 @@
 FROM ghcr.io/foundry-rs/foundry
 
 USER root
-RUN apt-get update && apt-get install -y make && apt-get install -y nodejs npm
+RUN apt-get update && apt-get install -y make
 
 USER foundry
 

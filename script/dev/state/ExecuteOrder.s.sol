@@ -13,7 +13,7 @@ import {BaseDevScript} from "dev/BaseDevScript.s.sol";
 import {DevConfig} from "dev/DevConfig.s.sol";
 
 // scripts order logic
-import {OrdersJson} from "dev/logic/OrdersJson.s.sol";
+import {EpochsJson} from "dev/logic/EpochsJson.s.sol";
 import {FillBid} from "dev/logic/FillBid.s.sol";
 import {SettlementValidation} from "dev/logic/SettlementValidation.s.sol";
 
@@ -25,7 +25,7 @@ import {ISettlementEngine} from "periphery/interfaces/ISettlementEngine.sol";
 import {SignedOrder, Selection} from "dev/state/Types.sol";
 
 contract ExecuteOrder is
-    OrdersJson,
+    EpochsJson,
     FillBid,
     SettlementValidation,
     BaseDevScript,

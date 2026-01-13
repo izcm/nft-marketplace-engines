@@ -16,7 +16,7 @@ import {Config} from "forge-std/Config.sol";
 // to allow role separation later without refactoring scripts.
 contract DevConfig is Config {
     constructor() {
-        _loadConfig("deployments.toml", true);
+        _loadConfig("pipeline.toml", true);
     }
 
     function readWeth() internal view returns (address) {

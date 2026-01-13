@@ -2,9 +2,6 @@ import fs from "node:fs/promises";
 
 // === config ===
 
-// TODO: maybe have a temporary anvil fork => query this for correct blocknumber => stop fork => restart at blocknumber
-// then API_KEY can be removed as a dev dependency
-
 const DAY = 24 * 60 * 60;
 const API_KEY = process.env.ALCHEMY_KEY;
 
@@ -13,7 +10,7 @@ if (!API_KEY) {
 }
 
 const url = `https://eth-mainnet.g.alchemy.com/v2/${API_KEY}`;
-const tomlFile = "./deployments.toml";
+const tomlFile = "./pipeline.toml";
 
 // === args ===
 
@@ -106,12 +103,12 @@ const writePipelineWindowToml = async ({
   section = section
     .replace(/pipeline_start_ts\s*=.*\n?/, "")
     .replace(/pipeline_end_ts\s*=.*\n?/, "")
-    .replace(/fork_block_number\s*=.*\n?/, "");
+    .replace(/fock_start_block\s*=.*\n?/, "");
 
   section +=
     `pipeline_start_ts = ${pipelineStartTs}\n` +
     `pipeline_end_ts = ${pipelineEndTs}\n` +
-    `fork_block_number = ${forkBlockNumber}\n`;
+    `fock_start_block = ${forkBlockNumber}\n`;
 
   toml = toml.replace(sectionRegex, section);
 

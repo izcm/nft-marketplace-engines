@@ -3,17 +3,17 @@
 # Kill previous anvil if running
 pkill anvil 2>/dev/null
 
-TOML="./deployments.toml"
+TOML="./pipeline.toml"
 
-ANVIL_FORK_BLOCK_NUMBER=$(awk -F ' ' '$1=="fork_block_number" { print $3 }' $TOML)
+FORK_START_BLOCK=$(awk -F ' ' '$1=="fock_start_block" { print $3 }' $TOML)
 
 # Start a fresh fork
 # https://getfoundry.sh/anvil/reference/anvil/
 anvil --fork-url https://eth-mainnet.g.alchemy.com/v2/"$ALCHEMY_KEY" \
-  --port 8545 \
-  --chain-id 1337 \
-  --host 0.0.0.0 \
-  --fork-block-number "$ANVIL_FORK_BLOCK_NUMBER"  \
+  --port "$RPC_PORT" \
+  --chain-id "$CHAIN_ID" \
+  --host "$RPC_HOST" \
+  --fork-block-number "$FORK_START_BLOCK"  \
   --silent &
 
 # Wait for Anvil to start
